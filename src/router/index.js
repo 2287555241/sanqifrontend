@@ -1,0 +1,109 @@
+import { createRouter, createWebHashHistory } from 'vue-router'
+import Index from '@/views/index.vue' // 主布局框架
+import Home from '@/views/Home.vue'
+import HelpCenter from '@/views/HelpCenter.vue'
+import AboutUs from '@/views/AboutUs.vue'
+import Service from '@/views/Service.vue'
+
+const routes = [
+  {
+    path: '/',
+    redirect: '/main' // 默认重定向到 main 页面
+  },
+  {
+    path: '/login',
+    name: 'login',
+    component: () => import(/* webpackChunkName: "login" */ '@/views/login.vue'),
+    meta: {
+      requiresAuth: false // 不需要登录验证
+    }
+  },
+  {
+    path: '/index',
+    name: 'index',
+    component: Index,
+    meta: {
+      requiresAuth: true // 需要登录验证
+    }
+  },
+  {
+    path: '/home',
+    name: 'home',
+    component: Index, // 使用 Index 组件作为布局框架
+    meta: {
+      requiresAuth: true // 需要登录验证
+    },
+    children: [
+      {
+        path: '', // 默认子路由，指向 Home 组件
+        component: Home
+      }
+    ]
+  },
+  // 以下是独立的路由，不在 home 下
+  {
+    path: '/main',
+    name: 'main',
+    component: Home,
+    meta: {
+      requiresAuth: false // 不需要登录验证
+    }
+  },
+  {
+    path: '/help',
+    name: 'help',
+    component: HelpCenter,
+    meta: {
+      requiresAuth: false // 不需要登录验证
+    }
+  },
+  {
+    path: '/about',
+    name: 'about',
+    component: AboutUs,
+    meta: {
+      requiresAuth: false // 不需要登录验证
+    }
+  },
+  {
+    path: '/service',
+    name: 'service',
+    component: Service,
+    meta: {
+      requiresAuth: false // 不需要登录验证
+    }
+  },
+  {
+    path: '/profile',
+    name: 'profile',
+    component: () => import(/* webpackChunkName: "profile" */ '@/views/profile.vue'),
+    meta: {
+      requiresAuth: true
+    }
+  }
+]
+
+const router = createRouter({
+  history: createWebHashHistory(),
+  routes
+})
+
+// 路由守卫（保持原有逻辑）
+router.beforeEach((to, from, next) => {
+  const token = window.sessionStorage.getItem('token')
+  
+  // 需要认证但无 token，跳转到登录页
+  if (to.meta.requiresAuth && !token) {
+    next('/login')
+  } 
+  // 已登录时访问登录页，跳转到首页
+  else if (to.path === '/login' && token) {
+    next('/main')
+  } 
+  // 其他情况正常放行
+  else {
+    next()
+  }
+})
+
+export default router
