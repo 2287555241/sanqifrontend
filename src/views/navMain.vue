@@ -189,7 +189,7 @@ onMounted(() => {
     });
 
     const wmsLayer = new WMSLayer({
-      url: "http://localhost:8100/geoserver/sanqi/wms",
+      url: "http://localhost:8200/geoserver/sanqi/wms",
       sublayers: [
         {
           name: "sanqi:sanqiresearcharea"
