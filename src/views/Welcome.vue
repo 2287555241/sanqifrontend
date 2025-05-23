@@ -86,7 +86,5 @@ const handleWheel = (e) => {
 const goToLogin = () => {
   router.push('/login')
 }
-
-      </script>
 </script>
   
