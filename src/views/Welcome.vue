@@ -88,4 +88,5 @@ const goToLogin = () => {
 }
 
       </script>
+</script>
   
