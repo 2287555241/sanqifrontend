@@ -87,5 +87,5 @@ const goToLogin = () => {
   router.push('/login')
 }
 
-</script>
+      </script>
   
