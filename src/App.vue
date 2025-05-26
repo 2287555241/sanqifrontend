@@ -1,7 +1,6 @@
 <template>
   <div class="app-container">
     <!-- 导航栏部分（固定位置，不受动画影响） -->
-    <NavHeader />
     
     <!-- 主要内容区域（应用动画效果） -->
     <div class="main-content" :class="{'page-transition-active': isTransitioning}">

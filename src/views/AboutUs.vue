@@ -1,6 +1,6 @@
 <template>
-  <NavHeader />
   <div class="page-container">
+    <NavHeader />
     <div class="about-container">
       <!-- 公司简介 -->
       <div class="company-section">
