@@ -1,6 +1,6 @@
 <template>
     <div class="data-management-container">
-      <h2 class="page-title">数据管理</h2>
+      <h2 class="page-title"></h2>
       
       <div class="data-content">
         <el-card class="data-card">
