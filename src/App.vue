@@ -1,7 +1,7 @@
 <template>
   <div class="app-container">
     <!-- 导航栏部分（固定位置，不受动画影响） -->
-    <header-nav />
+    <NavHeader />
     
     <!-- 主要内容区域（应用动画效果） -->
     <div class="main-content" :class="{'page-transition-active': isTransitioning}">
@@ -148,5 +148,9 @@ body {
 
 .page-transition-active::before {
   opacity: 0.15;
+}
+
+.app-container {
+  padding-top: 64px; /* 匹配导航栏高度 */
 }
 </style>
