@@ -14,7 +14,7 @@
           <el-table 
             :data="tableData" 
             style="width: 100%" 
-            border
+            border: boolean
             :row-style="{ height: '120px' }"
           >
             <el-table-column prop="id" label="ID" width="80" />
