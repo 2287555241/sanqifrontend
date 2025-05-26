@@ -80,6 +80,15 @@ const routes = [
     meta: {
       requiresAuth: true
     }
+  },
+  // 新增数据管理路由
+  {
+    path: '/data-management',
+    name: 'data-management',
+    component: () => import(/* webpackChunkName: "data-management" */ '@/views/DataManagement.vue'),
+    meta: {
+      requiresAuth: true // 需要登录验证
+    }
   }
 ]
 

@@ -127,6 +127,8 @@
 
 <script setup>
 import { ref } from 'vue'
+import { useRouter } from 'vue-router'
+import DraggableDialog from '../components/DraggableDialog.vue'
 import {
   Picture,
   Crop,
@@ -134,10 +136,11 @@ import {
   Histogram,
   Download,
   Fold,
-  Expand
+  Expand,
+  DataBoard
 } from '@element-plus/icons-vue'
-import DraggableDialog from '../components/DraggableDialog.vue'
 
+const router = useRouter()
 const isCollapse = ref(true)
 const dialogStates = ref({
   1: { visible: false, title: '影像处理' },
@@ -152,7 +155,8 @@ let asidelist = ref([
    {id:2, title:'种植区提取', icon:Crop},
    {id:3, title:'产量估算', icon:DataAnalysis},
    {id:4, title:'耕地数据叠加与分析', icon:Histogram},
-   {id:5, title:'数据导出', icon:Download}
+   {id:5, title:'数据导出', icon:Download},
+   {id:6, title:'数据管理', icon:DataBoard, route: '/data-management'} // 新增数据管理菜单项
 ])
 
 const toggleMenu = () => {
@@ -160,7 +164,13 @@ const toggleMenu = () => {
 }
 
 const handleMenuItemClick = (item) => {
-  dialogStates.value[item.id].visible = true
+  if (item.route) {
+    // 如果有route属性，则进行路由跳转
+    router.push(item.route)
+  } else if (dialogStates.value[item.id]) {
+    // 否则打开对应的对话框
+    dialogStates.value[item.id].visible = true
+  }
 }
 
 const closeDialog = (id) => {
@@ -168,6 +178,7 @@ const closeDialog = (id) => {
 }
 </script>
 
+<!-- 样式保持不变 -->
 <style scoped>
 .aside {
   height: calc(100vh - 64px);
