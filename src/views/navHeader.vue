@@ -64,8 +64,7 @@ const handleClick = (action) => {
       window.sessionStorage.removeItem('token')
       // 跳转到主页
       router.push('/main')
-      // 刷新页面
-      window.location.reload()
+      // 不再刷新页面
     }).catch(() => {
       // 取消退出
     })

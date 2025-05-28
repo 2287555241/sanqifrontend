@@ -4,10 +4,9 @@
     <div 
       class="panel panel-1"
       :style="{
-        top: panelPositions.panel1.top,
-        right: panelPositions.panel1.right
+        top: defaultPositions.panel1.top,
+        right: defaultPositions.panel1.right
       }"
-      @mousedown="(e) => startDrag(e, 'panel1')"
     >
       <div class="panel-header">
         <h3>数据管理概览</h3>
@@ -82,10 +81,9 @@
     <div 
       class="panel panel-2"
       :style="{
-        top: panelPositions.panel2.top,
-        right: panelPositions.panel2.right
+        top: defaultPositions.panel2.top,
+        right: defaultPositions.panel2.right
       }"
-      @mousedown="(e) => startDrag(e, 'panel2')"
     >
       <div class="panel-header">
         <h3>系统状态</h3>
@@ -93,25 +91,24 @@
       <div class="panel-content">
         <div class="status-item">
           <span class="label">CPU使用率</span>
-          <el-progress :percentage="45" :format="format" />
+          <el-progress :percentage="systemStatus.cpuUsage" :format="format" />
         </div>
         <div class="status-item">
           <span class="label">内存使用</span>
-          <el-progress :percentage="60" :format="format" />
+          <el-progress :percentage="systemStatus.memoryUsage" :format="format" />
         </div>
         <div class="status-item">
           <span class="label">存储空间</span>
-          <el-progress :percentage="30" :format="format" />
+          <el-progress :percentage="systemStatus.diskUsage" :format="format" />
         </div>
       </div>
     </div>
     <div 
       class="panel panel-3"
       :style="{
-        top: panelPositions.panel3.top,
-        right: panelPositions.panel3.right
+        top: defaultPositions.panel3.top,
+        right: defaultPositions.panel3.right
       }"
-      @mousedown="(e) => startDrag(e, 'panel3')"
     >
       <div class="panel-header">
         <h3>最近活动</h3>
@@ -144,12 +141,13 @@
 </template>
 
 <script setup>
-import { ref, onMounted, computed } from 'vue';
+import { ref, onMounted, computed, onUnmounted } from 'vue';
 import { loadModules } from 'esri-loader';
 import { ElProgress } from 'element-plus';
 import { Bell, User, Setting } from '@element-plus/icons-vue';
 import { Vue3SeamlessScroll } from 'vue3-seamless-scroll';
 import { useDataStore } from '../stores/dataStore';
+import axios from 'axios';
 
 const tk = "cbd48f39fb1e392a76ab69f7090b93c4";
 const basemapUrls = [
@@ -162,60 +160,11 @@ const dataStore = useDataStore();
 
 const format = (percentage) => percentage + '%';
 
-// 面板位置相关逻辑
+// 面板位置
 const defaultPositions = {
   panel1: { top: '80px', right: '24px' },
   panel2: { top: '345px', right: '24px' },
   panel3: { top: '590px', right: '24px' }
-};
-
-const panelPositions = ref({
-  panel1: { ...defaultPositions.panel1 },
-  panel2: { ...defaultPositions.panel2 },
-  panel3: { ...defaultPositions.panel3 }
-});
-
-const isDragging = ref(false);
-const currentPanel = ref(null);
-const dragOffset = ref({ x: 0, y: 0 });
-
-const startDrag = (e, panelId) => {
-  if (e.target.closest('.el-button')) return;
-  isDragging.value = true;
-  currentPanel.value = panelId;
-  const panel = e.target.closest('.panel');
-  const rect = panel.getBoundingClientRect();
-  dragOffset.value = {
-    x: e.clientX - rect.left,
-    y: e.clientY - rect.top
-  };
-  document.addEventListener('mousemove', onDrag);
-  document.addEventListener('mouseup', stopDrag);
-};
-
-const onDrag = (e) => {
-  if (!isDragging.value) return;
-  
-  const container = document.querySelector('.nav-main-container');
-  const containerRect = container.getBoundingClientRect();
-  
-  let newTop = e.clientY - containerRect.top - dragOffset.value.y;
-  let newRight = containerRect.right - e.clientX - dragOffset.value.x;
-  
-  newTop = Math.max(0, Math.min(newTop, containerRect.height - 200));
-  newRight = Math.max(0, Math.min(newRight, containerRect.width - 300));
-  
-  panelPositions.value[currentPanel.value] = {
-    top: `${newTop}px`,
-    right: `${newRight}px`
-  };
-};
-
-const stopDrag = () => {
-  isDragging.value = false;
-  currentPanel.value = null;
-  document.removeEventListener('mousemove', onDrag);
-  document.removeEventListener('mouseup', stopDrag);
 };
 
 // 激活的选项卡
@@ -227,14 +176,40 @@ const localDataList = computed(() => dataStore.localDataList);
 // 用户数据列表
 const userDataList = computed(() => dataStore.userDataList);
 
+// 系统状态数据
+const systemStatus = ref({
+  cpuUsage: 45,
+  memoryUsage: 60,
+  diskUsage: 30
+});
+
+// 获取系统状态
+const fetchSystemStatus = async () => {
+  try {
+    // 这里替换为您的后端API地址
+    const response = await axios.get('http://localhost:8200/api/system/status');
+    if (response.data) {
+      systemStatus.value = {
+        cpuUsage: response.data.cpuUsage || 0,
+        memoryUsage: response.data.memoryUsage || 0,
+        diskUsage: response.data.diskUsage || 0
+      };
+    }
+  } catch (error) {
+    console.error('获取系统状态失败:', error);
+    // 如果API请求失败，使用模拟数据
+    systemStatus.value = {
+      cpuUsage: Math.floor(Math.random() * 60) + 20,
+      memoryUsage: Math.floor(Math.random() * 40) + 40,
+      diskUsage: Math.floor(Math.random() * 30) + 20
+    };
+  }
+};
+
+// 定时获取系统状态的定时器
+let statusUpdateInterval = null;
+
 onMounted(() => {
-  // 重置面板位置
-  panelPositions.value = {
-    panel1: { ...defaultPositions.panel1 },
-    panel2: { ...defaultPositions.panel2 },
-    panel3: { ...defaultPositions.panel3 }
-  };
-  
   loadModules([
     'esri/Map',
     'esri/views/MapView',
@@ -335,7 +310,20 @@ onMounted(() => {
   }).catch(err => {
     console.error('Error loading ArcGIS modules:', err);
   });
-})
+  
+  // 首次获取系统状态
+  fetchSystemStatus();
+  
+  // 设置定时器，每30秒更新一次系统状态
+  statusUpdateInterval = setInterval(fetchSystemStatus, 30000);
+});
+
+onUnmounted(() => {
+  // 清除定时器
+  if (statusUpdateInterval) {
+    clearInterval(statusUpdateInterval);
+  }
+});
 </script>
 
 <style scoped>
@@ -369,8 +357,6 @@ onMounted(() => {
   border-radius: 12px;
   padding: 16px;
   box-shadow: 0 4px 24px 0 rgba(0,0,0,0.08);
-  cursor: move;
-  user-select: none;
   transition: box-shadow 0.3s ease;
   z-index: 1000;
 }
@@ -381,7 +367,6 @@ onMounted(() => {
 
 .panel-header {
   margin-bottom: 16px;
-  cursor: move;
 }
 
 .panel-header h3 {
