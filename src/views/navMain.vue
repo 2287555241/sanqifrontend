@@ -248,6 +248,11 @@ onMounted(() => {
       container: 'mapView',
       ui: {
         components: []
+      },
+      constraints: {
+        minZoom: 4, // 限制最小缩放级别（可以看到整个中国）
+        maxZoom: 18, // 限制最大缩放级别
+        rotationEnabled: false // 禁用旋转
       }
     });
 

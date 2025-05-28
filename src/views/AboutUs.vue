@@ -57,9 +57,9 @@
       <div class="contact-section">
         <h2>联系我们</h2>
         <div class="contact-info">
-          <p><el-icon><Location /></el-icon> 地址：北京市海淀区科技园区</p>
-          <p><el-icon><Phone /></el-icon> 电话：010-12345678</p>
-          <p><el-icon><Message /></el-icon> 邮箱：contact@example.com</p>
+          <p><el-icon><Location /></el-icon> 地址：青青草原青青河北岸羊村</p>
+          <p><el-icon><Phone /></el-icon> 电话：666666</p>
+          <p><el-icon><Message /></el-icon> 邮箱：123456@qq.com</p>
         </div>
       </div>
     </div>
