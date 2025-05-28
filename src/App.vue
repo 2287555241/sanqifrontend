@@ -1,14 +1,19 @@
 <template>
-  <router-view />
+  <router-view/>
 </template>
 
-<style>
+<script>
 
+</script>
+
+<style>
+/* 基础样式保持不变 */
 * {
   margin: 0;
   padding: 0;
   box-sizing: border-box;
 }
+
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
@@ -16,11 +21,16 @@
   color: #2c3e50;
 }
 
-/* 添加在全局样式或App.vue中 */
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-  font-size: 14px; /* 确保基础字体大小一致 */
-  line-height: 1.5; /* 确保行高一致 */
+  font-size: 14px;
+  line-height: 1.5;
+  background-color: #f5f7fa;
+}
+
+.app-container {
+  position: relative;
+  min-height: 100vh;
 }
 
 </style>

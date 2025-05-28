@@ -94,7 +94,11 @@ const routes = [
 
 const router = createRouter({
   history: createWebHashHistory(),
-  routes
+  routes,
+  scrollBehavior(to, from, savedPosition) {
+    // 页面切换时滚动到顶部
+    return { top: 0 }
+  }
 })
 
 // 路由守卫（保持原有逻辑）
