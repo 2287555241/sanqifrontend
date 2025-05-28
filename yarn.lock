@@ -3483,7 +3483,7 @@ electron-to-chromium@^1.5.73:
   resolved "https://registry.npmmirror.com/electron-to-chromium/-/electron-to-chromium-1.5.141.tgz"
   integrity sha512-qS+qH9oqVYc1ooubTiB9l904WVyM6qNYxtOEEGReoZXw3xlqeYdFr5GclNzbkAufWgwWLEPoDi3d9MoRwwIjGw==
 
-element-plus@^2.9.3, element-plus@^2.9.8:
+element-plus@^2.9.8:
   version "2.9.8"
   resolved "https://registry.npmmirror.com/element-plus/-/element-plus-2.9.8.tgz"
   integrity sha512-srViUaUdfblBKGMeuEPiXxxKlH5aUmKqEwmhb/At9Sj91DbU6od/jYN1955cTnzt3wTSA7GfnZF7UiRX9sdRHg==
@@ -6488,8 +6488,6 @@ safe-buffer@~5.1.0, safe-buffer@~5.1.1:
     sanqifrontend "file:"
     vue "^3.2.13"
     vue-router "^4.5.0"
-    vue-use-spring "^0.3.3"
-    vue3-seamless-scroll "^3.0.2"
     vuex "^4.0.2"
 
 scheduler@^0.26.0:
@@ -7504,11 +7502,6 @@ vue-demi@*:
   resolved "https://registry.npmmirror.com/vue-demi/-/vue-demi-0.14.10.tgz"
   integrity sha512-nMZBOwuzabUO0nLgIcc6rycZEebF6eeUfaiQx9+WSk8e29IbLvPU9feI6tqW4kTo3hvoYAJkMh8n8D0fuISphg==
 
-vue-demi@latest:
-  version "0.14.10"
-  resolved "https://registry.npmmirror.com/vue-demi/-/vue-demi-0.14.10.tgz"
-  integrity sha512-nMZBOwuzabUO0nLgIcc6rycZEebF6eeUfaiQx9+WSk8e29IbLvPU9feI6tqW4kTo3hvoYAJkMh8n8D0fuISphg==
-
 vue-eslint-parser@^8.0.1:
   version "8.3.0"
   resolved "https://registry.npmmirror.com/vue-eslint-parser/-/vue-eslint-parser-8.3.0.tgz"
@@ -7556,14 +7549,7 @@ vue-template-es2015-compiler@^1.9.0:
   resolved "https://registry.npmmirror.com/vue-template-es2015-compiler/-/vue-template-es2015-compiler-1.9.1.tgz"
   integrity sha512-4gDntzrifFnCEvyoO8PqyJDmguXgVPxKiIxrBKjIowvL9l+N66196+72XVYR8BBf1Uv1Fgt3bGevJ+sEmxfZzw==
 
-vue-use-spring@^0.3.3:
-  version "0.3.3"
-  resolved "https://registry.npmmirror.com/vue-use-spring/-/vue-use-spring-0.3.3.tgz"
-  integrity sha512-738mdx7XwDHrmP22T5SqKltKTRfvjHS0D/4p9XEuxgUE/gYDC/PqlxUTnRtG3i05oT1cwwU1e9ZNLsxDbJJVvw==
-  dependencies:
-    vue-demi latest
-
-vue@*, "vue@^2 || ^3.2.13", "vue@^2.6.12 || ^3.0.0", "vue@^2.7.0 || ^3.5.11", "vue@^3.0.0-0 || ^2.6.0", vue@^3.2.0, vue@^3.2.13, vue@>=3.0.0, vue@3.5.15:
+vue@*, "vue@^2 || ^3.2.13", "vue@^2.7.0 || ^3.5.11", "vue@^3.0.0-0 || ^2.6.0", vue@^3.2.0, vue@^3.2.13, vue@>=3.0.0, vue@3.5.15:
   version "3.5.15"
   resolved "https://registry.npmmirror.com/vue/-/vue-3.5.15.tgz"
   integrity sha512-aD9zK4rB43JAMK/5BmS4LdPiEp8Fdh8P1Ve/XNuMF5YRf78fCyPE6FUbQwcaWQ5oZ1R2CD9NKE0FFOVpMR7gEQ==
@@ -7573,13 +7559,6 @@ vue@*, "vue@^2 || ^3.2.13", "vue@^2.6.12 || ^3.0.0", "vue@^2.7.0 || ^3.5.11", "v
     "@vue/runtime-dom" "3.5.15"
     "@vue/server-renderer" "3.5.15"
     "@vue/shared" "3.5.15"
-
-vue3-seamless-scroll@^3.0.2:
-  version "3.0.2"
-  resolved "https://registry.npmmirror.com/vue3-seamless-scroll/-/vue3-seamless-scroll-3.0.2.tgz"
-  integrity sha512-LpKoL1ht71MASabUBsoSqbhLqcuKSrD+u01dgHac+/cthPAShKvcdM7dSGtaxjVntSFqdeViqJssjcwy/KqRSA==
-  dependencies:
-    element-plus "^2.9.3"
 
 vuex@^4.0.2:
   version "4.1.0"
