@@ -10,20 +10,72 @@
       @mousedown="(e) => startDrag(e, 'panel1')"
     >
       <div class="panel-header">
-        <h3>数据概览</h3>
+        <h3>数据管理概览</h3>
       </div>
-      <div class="panel-content">
-        <div class="data-item">
-          <span class="label">总用户数</span>
-          <span class="value">1,234</span>
+      <div class="panel-content card-panel-content">
+        <div class="tab-header">
+          <div 
+            class="tab-item" 
+            :class="{ active: activeTab === 'local' }" 
+            @click="activeTab = 'local'"
+          >
+            本地数据
+          </div>
+          <div 
+            class="tab-item" 
+            :class="{ active: activeTab === 'user' }" 
+            @click="activeTab = 'user'"
+          >
+            用户数据
+          </div>
         </div>
-        <div class="data-item">
-          <span class="label">今日活跃</span>
-          <span class="value">256</span>
-        </div>
-        <div class="data-item">
-          <span class="label">本月新增</span>
-          <span class="value">89</span>
+        <div class="scroll-wrapper">
+          <vue3-seamless-scroll
+            v-if="activeTab === 'local'"
+            class="scroll-card-list"
+            :list="localDataList"
+            :step="0.2"
+            :hover="true"
+            :limitScrollNum="3"
+            :singleHeight="60"
+            :wait="5000"
+          >
+            <div class="scroll-content">
+              <div class="scroll-card-item" v-for="item in localDataList" :key="item.id">
+                <div class="item-content">
+                  <div class="item-title">{{ item.name }}</div>
+                  <div class="item-meta">
+                    <span class="meta-type">{{ item.type }}</span>
+                    <span class="meta-size">{{ item.size }}</span>
+                    <span class="meta-time">{{ item.createTime }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </vue3-seamless-scroll>
+          <vue3-seamless-scroll
+            v-if="activeTab === 'user'"
+            class="scroll-card-list"
+            :list="userDataList"
+            :step="0.2"
+            :hover="true"
+            :limitScrollNum="3"
+            :singleHeight="60"
+            :wait="5000"
+          >
+            <div class="scroll-content">
+              <div class="scroll-card-item" v-for="item in userDataList" :key="item.id">
+                <div class="item-content">
+                  <div class="item-title">{{ item.name }}</div>
+                  <div class="item-meta">
+                    <span class="meta-type">{{ item.type }}</span>
+                    <span class="meta-size">{{ item.size }}</span>
+                    <span class="meta-time">{{ item.createTime }}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </vue3-seamless-scroll>
         </div>
       </div>
     </div>
@@ -92,10 +144,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, computed } from 'vue';
 import { loadModules } from 'esri-loader';
 import { ElProgress } from 'element-plus';
 import { Bell, User, Setting } from '@element-plus/icons-vue';
+import { Vue3SeamlessScroll } from 'vue3-seamless-scroll';
+import { useDataStore } from '../stores/dataStore';
 
 const tk = "cbd48f39fb1e392a76ab69f7090b93c4";
 const basemapUrls = [
@@ -103,13 +157,16 @@ const basemapUrls = [
   `http://t0.tianditu.gov.cn/DataServer?T=cva_w&x={x}&y={y}&l={z}&tk=${tk}`
 ];
 
+// 使用数据存储
+const dataStore = useDataStore();
+
 const format = (percentage) => percentage + '%';
 
 // 面板位置相关逻辑
 const defaultPositions = {
-  panel1: { top: '90px', right: '24px' },
-  panel2: { top: '340px', right: '24px' },
-  panel3: { top: '600px', right: '24px' }
+  panel1: { top: '80px', right: '24px' },
+  panel2: { top: '345px', right: '24px' },
+  panel3: { top: '590px', right: '24px' }
 };
 
 const panelPositions = ref({
@@ -160,6 +217,15 @@ const stopDrag = () => {
   document.removeEventListener('mousemove', onDrag);
   document.removeEventListener('mouseup', stopDrag);
 };
+
+// 激活的选项卡
+const activeTab = ref('local')
+
+// 本地数据列表
+const localDataList = computed(() => dataStore.localDataList);
+
+// 用户数据列表
+const userDataList = computed(() => dataStore.userDataList);
 
 onMounted(() => {
   // 重置面板位置
@@ -269,7 +335,7 @@ onMounted(() => {
   }).catch(err => {
     console.error('Error loading ArcGIS modules:', err);
   });
-});
+})
 </script>
 
 <style scoped>
@@ -387,144 +453,100 @@ onMounted(() => {
   color: #909399;
 }
 
-:deep(.el-progress-bar__outer) {
-  background-color: rgba(0, 0, 0, 0.1);
-}
-
-:deep(.el-progress-bar__inner) {
-  background-color: #409EFF;
-}
-</style>
-
-<style scoped>
-.nav-main-container {
-  width: 100%;
-  height: 100%;
+.card-panel-content {
+  height: 180px;
+  min-height: 180px;
+  max-height: 180px;
   display: flex;
   flex-direction: column;
-  background: transparent;
-  padding: 0;
-  box-sizing: border-box;
-  position: relative;
   overflow: hidden;
-}
-
-.map-container {
-  flex: 1;
-  min-height: 400px;
-  width: 100%;
-  border-radius: 8px;
-  overflow: hidden;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-  margin: 0 auto;
-}
-
-.panel {
-  position: fixed;
-  width: 300px;
   background: rgba(255, 255, 255, 0.4);
   backdrop-filter: blur(10px);
   border-radius: 12px;
-  padding: 16px;
-  box-shadow: 0 4px 24px 0 rgba(0,0,0,0.08);
-  cursor: move;
-  user-select: none;
-  transition: box-shadow 0.3s ease;
-  z-index: 1000;
 }
 
-.panel:hover {
-  box-shadow: 0 6px 32px 0 rgba(0,0,0,0.12);
+.tab-header {
+  display: flex;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+  margin-bottom: 8px;
 }
 
-.panel-header {
-  margin-bottom: 16px;
-  cursor: move;
+.tab-item {
+  padding: 8px 16px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.3s;
+  border-bottom: 2px solid transparent;
+  color: #666;
 }
 
-.panel-header h3 {
-  margin: 0;
-  color: #333;
-  font-size: 16px;
+.tab-item.active {
+  color: #409EFF;
+  border-bottom-color: #409EFF;
   font-weight: 500;
 }
 
-.panel-content {
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-}
-
-.data-item {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 8px 0;
-}
-
-.data-item .label {
-  color: #666;
-  font-size: 14px;
-}
-
-.data-item .value {
-  color: #333;
-  font-size: 16px;
-  font-weight: 500;
-}
-
-.status-item {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.status-item .label {
-  color: #666;
-  font-size: 14px;
-}
-
-.activity-item {
-  display: flex;
-  align-items: center;
-  gap: 12px;
-  padding: 8px 0;
-}
-
-.activity-item .el-icon {
-  font-size: 18px;
+.tab-item:hover {
   color: #409EFF;
 }
 
-.activity-info {
+.scroll-wrapper {
   flex: 1;
+  overflow: hidden;
+  position: relative;
 }
 
-.activity-title {
-  font-size: 14px;
-  color: #333;
-  margin-bottom: 4px;
+.scroll-card-list {
+  height: 100%;
+  width: 100%;
 }
 
-.activity-time {
-  font-size: 12px;
-  color: #909399;
+.scroll-content {
+  width: 100%;
 }
 
-.quick-actions {
+.scroll-card-item {
+  padding: 8px 16px;
+  transition: all 0.3s ease;
+  cursor: pointer;
+  border-bottom: 1px solid rgba(0, 0, 0, 0.05);
+}
+
+.scroll-card-item:hover {
+  background: rgba(64, 158, 255, 0.1);
+}
+
+.item-content {
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 4px;
 }
 
-.quick-actions .el-button {
-  width: 100%;
-  justify-content: flex-start;
-  gap: 8px;
+.item-title {
+  font-size: 14px;
+  color: #333;
+  font-weight: 500;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
-.quick-actions .el-icon {
-  margin-right: 4px;
+.item-meta {
+  display: flex;
+  gap: 12px;
+  font-size: 12px;
+}
+
+.meta-type {
+  color: #67C23A;
+}
+
+.meta-size {
+  color: #E6A23C;
+}
+
+.meta-time {
+  color: #909399;
 }
 
 :deep(.el-progress-bar__outer) {

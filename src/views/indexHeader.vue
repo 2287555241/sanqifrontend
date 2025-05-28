@@ -108,7 +108,7 @@ const navigateTo = (path) => {
 
 /* 居中标题（绝对定位） */
 .title {
-  color: #000000;
+  color: #4d87ca;
   font-size: 24px;
   font-weight: bold;
   letter-spacing: 5px;

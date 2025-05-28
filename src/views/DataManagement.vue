@@ -7,24 +7,59 @@
           <template #header>
             <div class="card-header">
               <span>数据列表</span>
-              <el-button type="primary" size="small">新增数据</el-button>
+              <el-button type="primary" size="small" @click="$emit('close')">关闭</el-button>
             </div>
           </template>
           
+          <div class="tab-header">
+            <div 
+              class="tab-item" 
+              :class="{ active: activeTab === 'local' }" 
+              @click="activeTab = 'local'"
+            >
+              本地数据
+            </div>
+            <div 
+              class="tab-item" 
+              :class="{ active: activeTab === 'user' }" 
+              @click="activeTab = 'user'"
+            >
+              用户数据
+            </div>
+          </div>
+          
           <el-table 
-            :data="tableData" 
+            :data="currentTableData" 
             style="width: 100%" 
             border: boolean
             :row-style="{ height: '120px' }"
           >
-            <el-table-column prop="id" label="ID" width="80" />
+            <el-table-column prop="id" label="ID" width="60" />
             <el-table-column prop="name" label="数据名称" />
-            <el-table-column prop="type" label="数据类型" />
-            <el-table-column prop="size" label="大小" />
-            <el-table-column prop="createTime" label="创建时间" />
-            <el-table-column label="操作" width="180">
+            <el-table-column prop="type" label="数据类型" width="90" />
+            <el-table-column prop="size" label="大小" width="80" />
+            <el-table-column prop="createTime" label="创建时间" width="160" />
+            <el-table-column label="图像预览" width="140">
               <template #default="scope">
-                <el-button size="small" @click="handleEdit(scope.row)">编辑</el-button>
+                <div class="image-preview-cell">
+                  <img 
+                    v-if="isImageType(scope.row.type)" 
+                    :src="getPreviewImageUrl(scope.row)" 
+                    :alt="scope.row.name"
+                    class="preview-thumbnail"
+                    @click="handlePreview(scope.row)"
+                  />
+                  <div v-else-if="isPreviewable(scope.row.type)" class="preview-icon-container" @click="handlePreview(scope.row)">
+                    <el-icon class="geo-icon"><Location /></el-icon>
+                  </div>
+                  <div v-else class="preview-icon-container">
+                    <el-icon><Document /></el-icon>
+                  </div>
+                </div>
+              </template>
+            </el-table-column>
+            <el-table-column label="操作" width="100">
+              <template #default="scope">
                 <el-button size="small" type="danger" @click="handleDelete(scope.row)">删除</el-button>
               </template>
             </el-table-column>
@@ -41,62 +76,127 @@
           </div>
         </el-card>
       </div>
+      
+      <!-- 图像预览对话框 -->
+      <el-dialog
+        v-model="previewDialogVisible"
+        title="图像预览"
+        width="60%"
+        :before-close="closePreviewDialog"
+      >
+        <div class="preview-container" v-if="currentPreviewItem">
+          <div class="preview-info">
+            <h4>{{ currentPreviewItem.name }}</h4>
+            <p>类型: {{ currentPreviewItem.type }} | 大小: {{ currentPreviewItem.size }} | 上传时间: {{ currentPreviewItem.createTime }}</p>
+          </div>
+          <div class="preview-image">
+            <img 
+              v-if="isImageType(currentPreviewItem.type)" 
+              :src="getPreviewImageUrl(currentPreviewItem)" 
+              alt="预览图片"
+            />
+            <div v-else class="preview-placeholder">
+              <el-icon class="preview-icon"><Document /></el-icon>
+              <span>{{ getPreviewMessage(currentPreviewItem.type) }}</span>
+            </div>
+          </div>
+        </div>
+      </el-dialog>
     </div>
   </template>
   
   <script setup>
-  import { ref } from 'vue'
+  import { ref, computed } from 'vue'
+  import { useDataStore } from '../stores/dataStore'
+  import { ElMessage, ElMessageBox } from 'element-plus'
+  import { Document, Location } from '@element-plus/icons-vue'
   
-  // 模拟数据
-  const tableData = ref([
-    {
-      id: 1,
-      name: '2023年小麦产量数据集（包含全国各省详细数据）',
-      type: 'CSV',
-      size: '2.5MB',
-      createTime: '2023-06-15 10:30:45',
-      description: '包含播种面积、亩产、总产量等核心指标'
-    },
-    {
-      id: 2,
-      name: '玉米种植区分布图（2023年最新版）',
-      type: 'GeoJSON',
-      size: '5.2MB',
-      createTime: '2023-06-18 14:15:30',
-      description: '东北、华北、西南三大主产区矢量数据'
-    },
-    {
-      id: 3,
-      name: '土壤质量分析报告（2023年度）',
-      type: 'PDF',
-      size: '1.8MB',
-      createTime: '2023-06-20 09:45:22',
-      description: 'pH值、有机质含量、重金属含量等12项指标'
-    },
-    {
-      id: 4,
-      name: '气象数据集（2023年1-6月每日更新）',
-      type: 'Excel',
-      size: '3.7MB',
-      createTime: '2023-06-22 16:20:18',
-      description: '温度、降水、风速、日照时数等数据'
-    },
-    {
-      id: 5,
-      name: '水稻生长监测影像（多光谱遥感数据）',
-      type: 'TIFF',
-      size: '15.3MB',
-      createTime: '2023-06-25 11:10:05',
-      description: '包含NDVI、EVI等植被指数图层'
-    }
-  ])
+  // 使用数据存储
+  const dataStore = useDataStore()
   
-  const handleEdit = (row) => {
-    console.log('编辑', row)
+  // 激活的选项卡
+  const activeTab = ref('local')
+  
+  // 根据当前激活的选项卡显示不同的数据
+  const currentTableData = computed(() => {
+    return activeTab.value === 'local' ? dataStore.localDataList : dataStore.userDataList
+  })
+  
+  // 预览相关
+  const previewDialogVisible = ref(false)
+  const currentPreviewItem = ref(null)
+  
+  // 判断文件类型是否可预览
+  const isPreviewable = (type) => {
+    const previewableTypes = ['GeoJSON', 'TIFF', 'JPG', 'PNG', 'JPEG', 'GIF']
+    return previewableTypes.includes(type)
   }
   
+  // 判断是否为图像类型
+  const isImageType = (type) => {
+    const imageTypes = ['JPG', 'PNG', 'JPEG', 'GIF', 'TIFF']
+    return imageTypes.includes(type)
+  }
+  
+  // 获取预览图片URL (这里使用模拟数据)
+  const getPreviewImageUrl = (item) => {
+    // 实际项目中这里应该返回真实的图片URL
+    if (isImageType(item.type)) {
+      // 根据文件类型返回不同的占位图片
+      return `https://via.placeholder.com/100x100.png?text=${item.type}`
+    }
+    return ''
+  }
+  
+  // 获取不同类型文件的预览信息
+  const getPreviewMessage = (type) => {
+    if (type === 'GeoJSON') {
+      return '地理空间数据，需要专用工具查看'
+    } else {
+      return '该类型文件无法直接预览'
+    }
+  }
+  
+  // 预览处理
+  const handlePreview = (row) => {
+    currentPreviewItem.value = row
+    previewDialogVisible.value = true
+  }
+  
+  // 关闭预览对话框
+  const closePreviewDialog = () => {
+    previewDialogVisible.value = false
+    currentPreviewItem.value = null
+  }
+  
+  // 删除处理
   const handleDelete = (row) => {
-    console.log('删除', row)
+    ElMessageBox.confirm(
+      `确定要删除 "${row.name}" 吗？`,
+      '警告',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+      .then(() => {
+        if (activeTab.value === 'local') {
+          dataStore.deleteLocalData(row.id)
+        } else {
+          dataStore.deleteUserData(row.id)
+        }
+        ElMessage({
+          type: 'success',
+          message: '删除成功',
+        })
+      })
+      .catch(() => {
+        ElMessage({
+          type: 'info',
+          message: '已取消删除',
+        })
+      })
   }
   
   const handlePageChange = (currentPage) => {
@@ -180,5 +280,124 @@
     border-top: 1px solid #ebeef5;
     display: flex;
     justify-content: center;
+  }
+
+  /* 选项卡样式 */
+  .tab-header {
+    display: flex;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+    margin-bottom: 16px;
+    padding: 0 20px;
+  }
+
+  .tab-item {
+    padding: 10px 20px;
+    cursor: pointer;
+    font-size: 14px;
+    transition: all 0.3s;
+    border-bottom: 2px solid transparent;
+    color: #666;
+  }
+
+  .tab-item.active {
+    color: #409EFF;
+    border-bottom-color: #409EFF;
+    font-weight: 500;
+  }
+
+  .tab-item:hover {
+    color: #409EFF;
+  }
+  
+  /* 预览相关样式 */
+  .preview-container {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+  }
+  
+  .preview-info {
+    border-bottom: 1px solid #ebeef5;
+    padding-bottom: 15px;
+  }
+  
+  .preview-info h4 {
+    margin: 0 0 10px 0;
+    font-size: 18px;
+    color: #303133;
+  }
+  
+  .preview-info p {
+    margin: 0;
+    color: #909399;
+    font-size: 14px;
+  }
+  
+  .preview-image {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 400px;
+    background-color: #f5f7fa;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  
+  .preview-image img {
+    max-width: 100%;
+    max-height: 100%;
+    object-fit: contain;
+  }
+  
+  .preview-placeholder {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    color: #909399;
+    gap: 20px;
+  }
+  
+  .preview-icon {
+    font-size: 64px;
+  }
+  
+  /* 表格中的图像预览样式 */
+  .image-preview-cell {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 80px;
+  }
+  
+  .preview-thumbnail {
+    max-width: 100px;
+    max-height: 80px;
+    object-fit: contain;
+    border-radius: 4px;
+    cursor: pointer;
+    transition: transform 0.2s;
+  }
+  
+  .preview-thumbnail:hover {
+    transform: scale(1.05);
+    box-shadow: 0 0 8px rgba(0, 0, 0, 0.1);
+  }
+  
+  .preview-icon-container {
+    width: 60px;
+    height: 60px;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background-color: #f5f7fa;
+    border-radius: 4px;
+    color: #909399;
+    font-size: 24px;
+  }
+  
+  .preview-icon-container .geo-icon {
+    color: #67C23A;
+    cursor: pointer;
   }
   </style>
