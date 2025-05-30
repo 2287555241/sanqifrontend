@@ -1,4 +1,3 @@
-<<<<<<< Updated upstream
 <template>
     <div class="data-management-container">
       <h2 class="page-title"></h2>
@@ -497,5 +496,3 @@
     width: 100%;
   }
   </style>
-=======
->>>>>>> Stashed changes
