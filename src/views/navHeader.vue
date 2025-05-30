@@ -5,12 +5,12 @@
         <div class="logo">
           <img src="../assets/logo.png" alt="Logo" />
         </div>
-        <div class="nav-buttons">
-          <el-button class="nav-button" type="text" @click="navigateTo('/main')">首页</el-button>
-          <el-button class="nav-button" type="text" @click="navigateTo('/service')">服务</el-button>
-          <el-button class="nav-button" type="text" @click="navigateTo('/help')">帮助中心</el-button>
-          <el-button class="nav-button" type="text" @click="navigateTo('/about')">关于我们</el-button>
-        </div>
+      </div>
+      <div class="nav-buttons">
+        <el-button class="nav-button" type="text" @click="navigateTo('/main')">首页</el-button>
+        <el-button class="nav-button" type="text" @click="navigateTo('/service')">服务</el-button>
+        <el-button class="nav-button" type="text" @click="navigateTo('/help')">帮助中心</el-button>
+        <el-button class="nav-button" type="text" @click="navigateTo('/about')">关于我们</el-button>
       </div>
       <div class="header-right">
         <el-dropdown v-if="isLoggedIn">
@@ -86,15 +86,15 @@ const userMenuItems = [
 .header {
   width: 100%;
   height: 64px;
-  background: rgba(240, 249, 255, 0.6);
-  backdrop-filter: blur(8px);
-  -webkit-backdrop-filter: blur(8px);
+  background: rgba(255, 255, 255, 0.95);
   position: fixed;
   top: 0;
   left: 0;
   z-index: 1000;
-  box-shadow: 0 2px 12px rgba(0,0,0,0.05);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.3);
+  box-shadow: 0 2px 10px rgba(0,0,0,0.08);
+  border-bottom: 1px solid rgba(234, 234, 234, 0.8);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
 }
 
 .header-content {
@@ -104,8 +104,7 @@ const userMenuItems = [
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 0 24px;
-  position: relative;
+  padding: 0 40px;
 }
 
 .header-left {
@@ -114,7 +113,7 @@ const userMenuItems = [
 }
 
 .logo {
-  height: 44px;
+  height: 40px;
   display: flex;
   align-items: center;
 }
@@ -125,25 +124,24 @@ const userMenuItems = [
 }
 
 .nav-buttons {
-  position: absolute;
-  left: 50%;
-  transform: translateX(-50%);
   display: flex;
-  gap: 32px;
+  gap: 40px;
+  margin: 0 auto;
 }
 
 .nav-button {
-  font-size: 16px;
+  font-size: 15px;
   font-weight: 500;
   color: #333;
-  padding: 0 16px;
+  padding: 0 8px;
   height: 64px;
   line-height: 64px;
   position: relative;
   transition: all 0.3s ease;
-  border: none;  /* 移除边框 */
-  box-shadow: none;  /* 移除阴影 */
-  background: transparent;  /* 透明背景 */
+  border: none;
+  box-shadow: none;
+  background: transparent;
+  letter-spacing: 1px;
 }
 
 .nav-button:hover {
@@ -234,6 +232,7 @@ const userMenuItems = [
 .auth-buttons .el-button {
   border-radius: 20px;
   transition: all 0.3s ease;
+  padding: 8px 20px;
 }
 
 .auth-buttons .el-button--primary {
@@ -246,17 +245,5 @@ const userMenuItems = [
   border-color: #5aabff;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
-}
-
-.auth-buttons .el-button--default {
-  border-color: #dcdfe6;
-  background: white;
-}
-
-.auth-buttons .el-button--default:hover {
-  border-color: #c6e2ff;
-  color: #409EFF;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
 }
 </style>

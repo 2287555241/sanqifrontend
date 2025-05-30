@@ -7,7 +7,18 @@
           <template #header>
             <div class="card-header">
               <span>数据列表</span>
-              <el-button type="primary" size="small" @click="$emit('close')">关闭</el-button>
+              <div class="header-actions">
+                <!-- 编辑模式下显示删除按钮，否则显示编辑按钮 -->
+                <template v-if="editMode">
+                  <el-button type="danger" size="small" :disabled="selectedRows.length === 0" @click="handleBatchDelete">删除</el-button>
+                  <el-button type="primary" size="small" @click="toggleEditMode">取消</el-button>
+                </template>
+                <template v-else>
+                  <el-button type="primary" size="small" @click="toggleEditMode">编辑</el-button>
+                  <el-button type="primary" size="small" @click="showImportDialog">数据导入</el-button>
+                </template>
+                <el-button type="primary" size="small" @click="$emit('close')">关闭</el-button>
+              </div>
             </div>
           </template>
           
@@ -33,8 +44,9 @@
             style="width: 100%" 
             border: boolean
             :row-style="{ height: '120px' }"
+            @selection-change="handleSelectionChange"
           >
-            <el-table-column prop="id" label="ID" width="60" />
+            <el-table-column v-if="editMode" type="selection" width="55" />
             <el-table-column prop="name" label="数据名称" />
             <el-table-column prop="type" label="数据类型" width="90" />
             <el-table-column prop="size" label="大小" width="80" />
@@ -58,11 +70,6 @@
                 </div>
               </template>
             </el-table-column>
-            <el-table-column label="操作" width="100">
-              <template #default="scope">
-                <el-button size="small" type="danger" @click="handleDelete(scope.row)">删除</el-button>
-              </template>
-            </el-table-column>
           </el-table>
           
           <div class="pagination-container">
@@ -81,7 +88,7 @@
       <el-dialog
         v-model="previewDialogVisible"
         title="图像预览"
-        width="60%"
+        width="80%"
         :before-close="closePreviewDialog"
       >
         <div class="preview-container" v-if="currentPreviewItem">
@@ -102,17 +109,36 @@
           </div>
         </div>
       </el-dialog>
+      
+      <!-- 数据导入对话框 -->
+      <import-dialog v-model="importDialogVisible" @success="handleImportSuccess" />
     </div>
   </template>
   
   <script setup>
-  import { ref, computed } from 'vue'
+  import { ref, computed, watch } from 'vue'
   import { useDataStore } from '../stores/dataStore'
   import { ElMessage, ElMessageBox } from 'element-plus'
   import { Document, Location } from '@element-plus/icons-vue'
+  import ImportDialog from '../components/ImportDialog.vue'
+  
+  // 定义emit
+  const emit = defineEmits(['close', 'disableDrag', 'enableDrag'])
   
   // 使用数据存储
   const dataStore = useDataStore()
+  
+  // 数据导入对话框
+  const importDialogVisible = ref(false)
+  
+  // 监听importDialogVisible变化，通知父组件禁用/启用拖动
+  watch(importDialogVisible, (newVal) => {
+    if (newVal) {
+      emit('disableDrag')
+    } else {
+      emit('enableDrag')
+    }
+  })
   
   // 激活的选项卡
   const activeTab = ref('local')
@@ -125,6 +151,56 @@
   // 预览相关
   const previewDialogVisible = ref(false)
   const currentPreviewItem = ref(null)
+  
+  // 编辑模式
+  const editMode = ref(false)
+  const selectedRows = ref([])
+  
+  const toggleEditMode = () => {
+    editMode.value = !editMode.value
+    // 切换模式时清空选中
+    if (!editMode.value) {
+      selectedRows.value = []
+    }
+  }
+  
+  const handleSelectionChange = (rows) => {
+    selectedRows.value = rows
+  }
+  
+  const handleBatchDelete = () => {
+    if (selectedRows.value.length === 0) return
+    
+    ElMessageBox.confirm(
+      `确定要删除选中的 ${selectedRows.value.length} 项吗？`,
+      '警告',
+      {
+        confirmButtonText: '确定',
+        cancelButtonText: '取消',
+        type: 'warning',
+      }
+    )
+      .then(() => {
+        selectedRows.value.forEach(row => {
+          if (activeTab.value === 'local') {
+            dataStore.deleteLocalData(row.id)
+          } else {
+            dataStore.deleteUserData(row.id)
+          }
+        })
+        selectedRows.value = []
+        ElMessage({
+          type: 'success',
+          message: '删除成功',
+        })
+      })
+      .catch(() => {
+        ElMessage({
+          type: 'info',
+          message: '已取消删除',
+        })
+      })
+  }
   
   // 判断文件类型是否可预览
   const isPreviewable = (type) => {
@@ -169,38 +245,29 @@
     currentPreviewItem.value = null
   }
   
-  // 删除处理
-  const handleDelete = (row) => {
-    ElMessageBox.confirm(
-      `确定要删除 "${row.name}" 吗？`,
-      '警告',
-      {
-        confirmButtonText: '确定',
-        cancelButtonText: '取消',
-        type: 'warning',
-      }
-    )
-      .then(() => {
-        if (activeTab.value === 'local') {
-          dataStore.deleteLocalData(row.id)
-        } else {
-          dataStore.deleteUserData(row.id)
-        }
-        ElMessage({
-          type: 'success',
-          message: '删除成功',
-        })
-      })
-      .catch(() => {
-        ElMessage({
-          type: 'info',
-          message: '已取消删除',
-        })
-      })
-  }
-  
   const handlePageChange = (currentPage) => {
     console.log('页码变化', currentPage)
+  }
+
+  const handleEdit = (row) => {
+    // 实现编辑逻辑
+    console.log('编辑', row)
+  }
+  
+  // 显示导入对话框
+  const showImportDialog = () => {
+    importDialogVisible.value = true
+  }
+  
+  // 导入成功的回调
+  const handleImportSuccess = () => {
+    ElMessage.success('数据导入成功')
+    // 可以在这里刷新数据列表
+    if (activeTab.value === 'local') {
+      dataStore.fetchLocalData()
+    } else {
+      dataStore.fetchUserData()
+    }
   }
   </script>
   
@@ -224,11 +291,14 @@
   
   /* 内容区域 */
   .data-content {
-    margin: 0 0 0 64px;
+    margin: 0;  /* 移除左边距，让内容区域完全展开 */
     flex: 1;
     display: flex;
     flex-direction: column;
     min-height: 0;
+    width: 100%;
+    padding: 0 20px; /* 使用padding代替margin来控制间距 */
+    cursor: default; /* 设置默认鼠标样式 */
   }
   
   /* 卡片样式 */
@@ -237,7 +307,9 @@
     display: flex;
     flex-direction: column;
     overflow: hidden;
-    margin-top: 20px; /* 与标题共同构成60px间距 */
+    margin-top: 20px;
+    min-width: 1000px; /* 设置最小宽度 */
+    width: 100%; /* 让卡片占满容器宽度 */
   }
   
   /* 卡片头部样式 */
@@ -246,6 +318,14 @@
     justify-content: space-between;
     align-items: center;
     padding: 12px 20px;
+    cursor: default; /* 设置默认鼠标样式 */
+  }
+  
+  /* 头部按钮组 */
+  .header-actions {
+    display: flex;
+    gap: 10px;
+    align-items: center;
   }
   
   /* 表格容器 */
@@ -255,21 +335,30 @@
     flex-direction: column;
     overflow: hidden;
     padding: 0;
+    cursor: default; /* 设置默认鼠标样式 */
   }
   
   /* 表格样式 */
   .data-card :deep(.el-table) {
     flex: 1;
     overflow: auto;
+    width: 100% !important; /* 强制表格宽度为100% */
+    cursor: default; /* 设置默认鼠标样式 */
+  }
+  
+  /* 表格单元格样式 */
+  .data-card :deep(.el-table td) {
+    cursor: default; /* 设置默认鼠标样式 */
+  }
+  
+  /* 表格头部样式 */
+  .data-card :deep(.el-table th) {
+    cursor: default; /* 设置默认鼠标样式 */
   }
   
   /* 行高设置 */
   .data-card :deep(.el-table .el-table__row) {
     height: 120px;
-  }
-  .data-card :deep(.el-table td) {
-    padding: 12px 0;
-    vertical-align: top; /* 内容顶部对齐 */
   }
   
   /* 分页样式 */
@@ -288,11 +377,12 @@
     border-bottom: 1px solid rgba(0, 0, 0, 0.1);
     margin-bottom: 16px;
     padding: 0 20px;
+    cursor: default; /* 设置默认鼠标样式 */
   }
 
   .tab-item {
     padding: 10px 20px;
-    cursor: pointer;
+    cursor: pointer; /* 保持选项卡的可点击样式 */
     font-size: 14px;
     transition: all 0.3s;
     border-bottom: 2px solid transparent;
@@ -399,5 +489,10 @@
   .preview-icon-container .geo-icon {
     color: #67C23A;
     cursor: pointer;
+  }
+
+  /* 调整表格列宽度 */
+  .data-card :deep(.el-table .el-table__header-wrapper) {
+    width: 100%;
   }
   </style>

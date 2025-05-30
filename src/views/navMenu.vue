@@ -2,8 +2,8 @@
   <el-aside 
     :width="isCollapse ? '64px' : '200px'" 
     class="aside"
-    @mouseenter="isCollapse = false"
-    @mouseleave="isCollapse = true"
+    @mouseenter="expandMenu"
+    @mouseleave="collapseMenu"
   >
     <el-menu
       class="el-menu-vertical-demo custom-menu full-height-menu"
@@ -100,21 +100,6 @@
     </DraggableDialog>
 
     <!-- 数据导入对话框 -->
-    <DraggableDialog
-      :visible="dialogStates[7].visible"
-      :title="dialogStates[7].title"
-      :initial-position="{ x: 300, y: 300 }"
-      @close="closeDialog(7)"
-    >
-      <div>
-        <h3>数据导入功能</h3>
-        <p>数据导入功能包括：</p>
-        <ul>
-          <li>数据导入</li>
-        </ul>
-      </div>
-    </DraggableDialog>
-
     <!-- 数据导出对话框 -->
     <DraggableDialog
       :visible="dialogStates[5].visible"
@@ -136,7 +121,7 @@
 </template>
 
 <script setup>
-import { ref, defineEmits } from 'vue'
+import { ref, defineEmits, defineProps } from 'vue'
 import { useRouter } from 'vue-router'
 import DraggableDialog from '../components/DraggableDialog.vue'
 import {
@@ -148,6 +133,14 @@ import {
   DataBoard,
   Upload
 } from '@element-plus/icons-vue'
+import { ElMessage } from 'element-plus'
+
+const props = defineProps({
+  dataManagementVisible: {
+    type: Boolean,
+    default: false
+  }
+})
 
 const router = useRouter()
 const isCollapse = ref(true)
@@ -156,8 +149,7 @@ const dialogStates = ref({
   2: { visible: false, title: '种植区提取' },
   3: { visible: false, title: '产量估算' },
   4: { visible: false, title: '耕地数据叠加与分析' },
-  5: { visible: false, title: '数据导出' },
-  7: { visible: false, title: '数据导入' }
+  5: { visible: false, title: '数据导出' }
 })
 
 let asidelist = ref([
@@ -165,9 +157,8 @@ let asidelist = ref([
    {id:2, title:'种植区提取', icon:Crop},
    {id:3, title:'产量估算', icon:DataAnalysis},
    {id:4, title:'耕地数据叠加与分析', icon:Histogram},
-   {id:7, title:'数据导入', icon:Upload},
    {id:5, title:'数据导出', icon:Download},
-   {id:6, title:'数据管理', icon:DataBoard, route: '/data-management'} // 新增数据管理菜单项
+   {id:6, title:'数据管理', icon:DataBoard, route: '/data-management'} // 数据管理菜单项
 ])
 
 const handleMenuItemClick = (item) => {
@@ -189,6 +180,20 @@ const closeDialog = (id) => {
 }
 
 const emit = defineEmits(['openDataManagement'])
+
+const expandMenu = () => {
+  isCollapse.value = false
+}
+
+const collapseMenu = () => {
+  // 检查是否有任何对话框处于显示状态
+  const anyDialogVisible = Object.values(dialogStates.value).some(dialog => dialog.visible)
+  
+  // 只有在没有对话框显示且数据管理弹窗未显示时才收缩菜单
+  if (!anyDialogVisible && !props.dataManagementVisible) {
+    isCollapse.value = true
+  }
+}
 </script>
 
 <style scoped>

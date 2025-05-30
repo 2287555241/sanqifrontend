@@ -5,7 +5,7 @@
     :style="{ left: position.x + 'px', top: position.y + 'px' }"
   >
     <el-card shadow="always" class="dialog-card">
-      <div class="dialog-header" @mousedown="startDrag">
+      <div class="dialog-header" @mousedown="!disabled && startDrag" :class="{ 'disabled': disabled }">
         <span>{{ title }}</span>
         <span class="dialog-close" @click="$emit('close')">×</span>
       </div>
@@ -25,6 +25,10 @@ const props = defineProps({
   initialPosition: {
     type: Object,
     default: () => ({ x: 100, y: 100 })
+  },
+  disabled: {
+    type: Boolean,
+    default: false
   }
 })
 
@@ -35,6 +39,8 @@ const dragging = ref(false)
 const offset = ref({ x: 0, y: 0 })
 
 function startDrag(e) {
+  if (props.disabled) return;
+  
   dragging.value = true
   offset.value = {
     x: e.clientX - position.value.x,
@@ -45,7 +51,7 @@ function startDrag(e) {
 }
 
 function onDrag(e) {
-  if (dragging.value) {
+  if (dragging.value && !props.disabled) {
     position.value = {
       x: e.clientX - offset.value.x,
       y: e.clientY - offset.value.y
@@ -85,6 +91,10 @@ function stopDrag() {
   padding: 10px 16px;
   background: rgba(64, 158, 255, 0.1);
   border-bottom: 1px solid rgba(64, 158, 255, 0.2);
+}
+
+.dialog-header.disabled {
+  cursor: default;
 }
 
 .dialog-close {

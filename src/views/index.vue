@@ -6,8 +6,8 @@
       <el-container style="background: transparent; box-shadow: none;">
         <el-aside width="200px" style="background: transparent; box-shadow: none; margin-top: 60px;">
           <navMenu 
-            @openDataManagement="dataManagementDialogVisible = true" 
-            :hasDialog="dataManagementDialogVisible"
+            @openDataManagement="handleOpenDataManagement" 
+            :dataManagementVisible="dataManagementDialogVisible"
           />
         </el-aside>
         <el-container>
@@ -22,19 +22,23 @@
         top: dialogPosition.y + 'px',
         left: dialogPosition.x + 'px',
         zIndex: '2000',
-        cursor: 'move'
+        cursor: isDragDisabled ? 'default' : 'move'
       }"
-      @mousedown="startDrag"
-      @mousemove="onDrag"
-      @mouseup="stopDrag"
-      @mouseleave="stopDrag"
+      @mousedown="handleMouseDown"
+      @mousemove="handleMouseMove"
+      @mouseup="handleMouseUp"
+      @mouseleave="handleMouseUp"
     >
-      <DataManagement @close="dataManagementDialogVisible = false" />
+      <DataManagement 
+        @close="closeDataManagement" 
+        @disableDrag="setDragDisabled(true)"
+        @enableDrag="setDragDisabled(false)"
+      />
     </div>
     <div 
       v-if="dataManagementDialogVisible"
       class="mask"
-      @click="dataManagementDialogVisible = false"
+      @click="closeDataManagement"
     ></div>
   </div>
 </template>
@@ -48,31 +52,80 @@ import DataManagement from './DataManagement.vue';
 
 const dataManagementDialogVisible = ref(false);
 const isDragging = ref(false);
+const isDragDisabled = ref(false);
 const dialogPosition = ref({ 
   x: window.innerWidth / 2 - 350, 
-  y: window.innerHeight / 2 - 450  // 从-300改为-500，使弹窗位置更靠上
+  y: window.innerHeight / 2 - 450
 });
 const dragOffset = ref({ x: 0, y: 0 });
 
-const startDrag = (e) => {
-  if (e.target.closest('.el-table') || e.target.closest('.el-button')) return;
+const handleOpenDataManagement = () => {
+  dataManagementDialogVisible.value = true;
+  isDragDisabled.value = false; // 确保打开时可以拖动
+};
+
+const closeDataManagement = () => {
+  dataManagementDialogVisible.value = false;
+  isDragDisabled.value = false; // 重置拖动状态
+};
+
+const setDragDisabled = (disabled) => {
+  isDragDisabled.value = disabled;
+};
+
+const handleMouseDown = (e) => {
+  // 如果点击的是表格或按钮，不启动拖动
+  if (e.target.closest('.el-table') || e.target.closest('.el-button')) {
+    return;
+  }
+  
+  // 如果拖动被禁用，不启动拖动
+  if (isDragDisabled.value) {
+    return;
+  }
+
   isDragging.value = true;
   dragOffset.value = {
     x: e.clientX - dialogPosition.value.x,
     y: e.clientY - dialogPosition.value.y
   };
+
+  // 添加全局鼠标事件监听
+  document.addEventListener('mousemove', handleGlobalMouseMove);
+  document.addEventListener('mouseup', handleGlobalMouseUp);
 };
 
-const onDrag = (e) => {
-  if (!isDragging.value) return;
+const handleMouseMove = (e) => {
+  if (!isDragging.value || isDragDisabled.value) return;
+  
   dialogPosition.value = {
     x: e.clientX - dragOffset.value.x,
     y: e.clientY - dragOffset.value.y
   };
 };
 
-const stopDrag = () => {
-  isDragging.value = false;
+const handleMouseUp = () => {
+  if (isDragging.value) {
+    isDragging.value = false;
+    // 移除全局鼠标事件监听
+    document.removeEventListener('mousemove', handleGlobalMouseMove);
+    document.removeEventListener('mouseup', handleGlobalMouseUp);
+  }
+};
+
+// 全局鼠标移动处理
+const handleGlobalMouseMove = (e) => {
+  if (!isDragging.value || isDragDisabled.value) return;
+  
+  dialogPosition.value = {
+    x: e.clientX - dragOffset.value.x,
+    y: e.clientY - dragOffset.value.y
+  };
+};
+
+// 全局鼠标松开处理
+const handleGlobalMouseUp = () => {
+  handleMouseUp();
 };
 </script>
 
