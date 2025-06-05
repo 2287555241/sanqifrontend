@@ -38,7 +38,7 @@
 import { ref, computed } from 'vue'
 import { Bell, QuestionFilled, CirclePlus, User, Setting, SwitchButton } from '@element-plus/icons-vue'
 import { useRouter } from 'vue-router'
-import { ElMessageBox } from 'element-plus'
+import { ElMessageBox, ElMessage } from 'element-plus'
 
 const router = useRouter()
 
@@ -62,9 +62,19 @@ const handleClick = (action) => {
     ).then(() => {
       // 清除登录信息
       window.sessionStorage.removeItem('token')
-      // 跳转到主页
-      router.push('/main')
-      // 不再刷新页面
+      window.sessionStorage.removeItem('userInfo')
+      
+      // 使用ElMessage显示退出成功提示
+      ElMessage({
+        message: '退出登录成功',
+        type: 'success',
+        duration: 2000
+      })
+      
+      // 强制刷新当前页面以更新状态
+      setTimeout(() => {
+        window.location.href = '/'
+      }, 300)
     }).catch(() => {
       // 取消退出
     })
