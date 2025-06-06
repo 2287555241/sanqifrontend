@@ -14,7 +14,7 @@
         :on-success="handleSuccess"
         :on-error="handleError"
         :before-upload="beforeUpload"
-        accept=".xlsx,.xls,.csv"
+        accept=".zip,.geojson,.tiff,.tif"
       >
         <el-icon class="el-icon--upload"><upload-filled /></el-icon>
         <div class="el-upload__text">
@@ -22,7 +22,7 @@
         </div>
         <template #tip>
           <div class="el-upload__tip">
-            支持上传 xlsx、xls、csv 格式的文件
+            支持上传 zip（矢量包）、geojson（矢量）、tiff/tif（栅格）格式的文件
           </div>
         </template>
       </el-upload>
@@ -65,24 +65,27 @@ const uploadInfo = ref({
 
 // 文件上传前的验证
 const beforeUpload = (file) => {
-  const isValidFormat = file.type === 'application/vnd.ms-excel' || 
-                       file.type === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' ||
-                       file.type === 'text/csv'
-  const isLt2M = file.size / 1024 / 1024 < 2
-
-  if (!isValidFormat) {
-    ElMessage.error('只能上传 Excel/CSV 文件!')
+  // 允许的扩展名
+  const allowedExts = ['.zip', '.geojson', '.tiff', '.tif']
+  const name = file.name.toLowerCase()
+  const ext = allowedExts.find(e => name.endsWith(e))
+  if (!ext) {
+    ElMessage.error('只能上传 zip、geojson、tiff、tif 文件!')
     return false
   }
-  if (!isLt2M) {
-    ElMessage.error('文件大小不能超过 2MB!')
+  // 类型初步判断
+  let fileType = '未知类型'
+  if (ext === '.zip' || ext === '.geojson') fileType = '矢量文件'
+  if (ext === '.tiff' || ext === '.tif') fileType = '栅格文件'
+  const isLt200M = file.size / 1024 / 1024 < 200
+  if (!isLt200M) {
+    ElMessage.error('文件大小不能超过 200MB!')
     return false
   }
-
   uploadInfo.value = {
     show: true,
     type: 'info',
-    message: '正在上传...',
+    message: '正在上传... (' + fileType + ')',
     description: `文件名：${file.name}`
   }
   uploading.value = true
