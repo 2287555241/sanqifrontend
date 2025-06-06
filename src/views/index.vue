@@ -54,19 +54,23 @@ const dataManagementDialogVisible = ref(false);
 const isDragging = ref(false);
 const isDragDisabled = ref(false);
 const dialogPosition = ref({ 
-  x: window.innerWidth / 2 - 350, 
-  y: window.innerHeight / 2 - 450
+  x: 250,
+  y: 10
 });
 const dragOffset = ref({ x: 0, y: 0 });
 
 const handleOpenDataManagement = () => {
   dataManagementDialogVisible.value = true;
-  isDragDisabled.value = false; // 确保打开时可以拖动
+  isDragDisabled.value = false;
+  dialogPosition.value = {
+    x: 250,
+    y: 10
+  };
 };
 
 const closeDataManagement = () => {
   dataManagementDialogVisible.value = false;
-  isDragDisabled.value = false; // 重置拖动状态
+  isDragDisabled.value = false;
 };
 
 const setDragDisabled = (disabled) => {
@@ -74,12 +78,10 @@ const setDragDisabled = (disabled) => {
 };
 
 const handleMouseDown = (e) => {
-  // 如果点击的是表格或按钮，不启动拖动
   if (e.target.closest('.el-table') || e.target.closest('.el-button')) {
     return;
   }
   
-  // 如果拖动被禁用，不启动拖动
   if (isDragDisabled.value) {
     return;
   }
@@ -90,7 +92,6 @@ const handleMouseDown = (e) => {
     y: e.clientY - dialogPosition.value.y
   };
 
-  // 添加全局鼠标事件监听
   document.addEventListener('mousemove', handleGlobalMouseMove);
   document.addEventListener('mouseup', handleGlobalMouseUp);
 };
@@ -107,13 +108,11 @@ const handleMouseMove = (e) => {
 const handleMouseUp = () => {
   if (isDragging.value) {
     isDragging.value = false;
-    // 移除全局鼠标事件监听
     document.removeEventListener('mousemove', handleGlobalMouseMove);
     document.removeEventListener('mouseup', handleGlobalMouseUp);
   }
 };
 
-// 全局鼠标移动处理
 const handleGlobalMouseMove = (e) => {
   if (!isDragging.value || isDragDisabled.value) return;
   
@@ -123,7 +122,6 @@ const handleGlobalMouseMove = (e) => {
   };
 };
 
-// 全局鼠标松开处理
 const handleGlobalMouseUp = () => {
   handleMouseUp();
 };
