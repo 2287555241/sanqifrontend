@@ -51,7 +51,11 @@
         :on-success="handleSuccess"
         :on-error="handleError"
         :before-upload="beforeUpload"
+<<<<<<< HEAD
                 accept=".tif,.shp,.geojson"
+=======
+        accept=".zip,.geojson,.tiff,.tif"
+>>>>>>> dd6dd2e0d24d72f0af6a80fa94212742456e0912
       >
                 <el-button type="primary" class="upload-button">
                   <el-icon class="upload-icon"><Upload /></el-icon>
@@ -65,6 +69,12 @@
           <el-icon><InfoFilled /></el-icon>
           支持.tif, .shp, .geojson格式，文件大小不超过50MB
         </div>
+<<<<<<< HEAD
+=======
+        <template #tip>
+          <div class="el-upload__tip">
+            支持上传 zip（矢量包）、geojson（矢量）、tiff/tif（栅格）格式的文件
+>>>>>>> dd6dd2e0d24d72f0af6a80fa94212742456e0912
           </div>
 
       <!-- 描述输入 -->
@@ -166,6 +176,7 @@ const customDirPath = ref('')
 
 // 文件上传前的验证
 const beforeUpload = (file) => {
+<<<<<<< HEAD
   const isValidFormat = /\.(tif|shp|geojson)$/i.test(file.name)
   const isLt50M = file.size / 1024 / 1024 < 50
 
@@ -179,6 +190,31 @@ const beforeUpload = (file) => {
   }
 
   selectedFileName.value = file.name
+=======
+  // 允许的扩展名
+  const allowedExts = ['.zip', '.geojson', '.tiff', '.tif']
+  const name = file.name.toLowerCase()
+  const ext = allowedExts.find(e => name.endsWith(e))
+  if (!ext) {
+    ElMessage.error('只能上传 zip、geojson、tiff、tif 文件!')
+    return false
+  }
+  // 类型初步判断
+  let fileType = '未知类型'
+  if (ext === '.zip' || ext === '.geojson') fileType = '矢量文件'
+  if (ext === '.tiff' || ext === '.tif') fileType = '栅格文件'
+  const isLt200M = file.size / 1024 / 1024 < 200
+  if (!isLt200M) {
+    ElMessage.error('文件大小不能超过 200MB!')
+    return false
+  }
+  uploadInfo.value = {
+    show: true,
+    type: 'info',
+    message: '正在上传... (' + fileType + ')',
+    description: `文件名：${file.name}`
+  }
+>>>>>>> dd6dd2e0d24d72f0af6a80fa94212742456e0912
   uploading.value = true
   return true
 }
