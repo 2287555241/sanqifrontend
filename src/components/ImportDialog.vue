@@ -44,15 +44,15 @@
             class="custom-input"
           >
             <template #append>
-              <el-upload
+      <el-upload
                 class="upload-hidden"
-                action="/api/upload"
+        action="/api/upload"
                 :show-file-list="false"
-                :on-success="handleSuccess"
-                :on-error="handleError"
-                :before-upload="beforeUpload"
+        :on-success="handleSuccess"
+        :on-error="handleError"
+        :before-upload="beforeUpload"
                 accept=".tif,.shp,.geojson"
-              >
+      >
                 <el-button type="primary" class="upload-button">
                   <el-icon class="upload-icon"><Upload /></el-icon>
                   选择文件
@@ -65,7 +65,7 @@
           <el-icon><InfoFilled /></el-icon>
           支持.tif, .shp, .geojson格式，文件大小不超过50MB
         </div>
-      </div>
+          </div>
 
       <!-- 描述输入 -->
       <div class="description-input section">
