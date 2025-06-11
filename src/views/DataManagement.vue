@@ -491,9 +491,13 @@ const handleImportSuccess = () => {
   cursor: pointer;
 }
 
-/* 调整表格列宽度 */
-.data-card :deep(.el-table .el-table__header-wrapper) {
-  width: 100%;
-}
-</style>
+  /* 调整表格列宽度 */
+  .data-card :deep(.el-table .el-table__header-wrapper) {
+    width: 100%;
+  }
+  </style>
+=======
+>>>>>>> Stashed changes
+=======
+>>>>>>> Stashed changes
 
