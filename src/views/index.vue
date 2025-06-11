@@ -4,14 +4,14 @@
     <indexHeader />
     <div class="content-container">
       <el-container style="background: transparent; box-shadow: none;">
-        <el-aside width="200px" style="background: transparent; box-shadow: none; margin-top: 60px;">
+        <el-aside width="200px" style="background: transparent; box-shadow: none; margin-top: 30px;">
           <navMenu 
             @openDataManagement="handleOpenDataManagement" 
             :dataManagementVisible="dataManagementDialogVisible"
           />
         </el-aside>
         <el-container>
-          <el-main style="background: transparent; padding: 0; margin-top: 60px;"></el-main>
+          <el-main style="background: transparent; padding: 0; margin-top: 30px;"></el-main>
         </el-container>
       </el-container>
     </div>

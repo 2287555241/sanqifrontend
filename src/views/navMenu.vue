@@ -1,18 +1,16 @@
 <template>
   <el-aside 
-    :width="isCollapse ? '64px' : '200px'" 
+    width="64px" 
     class="aside"
-    @mouseenter="expandMenu"
-    @mouseleave="collapseMenu"
   >
     <el-menu
       class="el-menu-vertical-demo custom-menu full-height-menu"
       :default-active="activeIndex"
-      background-color="rgba(255,255,255,0.7)"
-      text-color="#333"
-      active-text-color="#409EFF"
+      background-color="#1a1a1a"
+      text-color="#b8b8b8"
+      active-text-color="#e6e6e6"
       style="height: 100%; border-right: none;"
-      :collapse="isCollapse"
+      collapse
     >
       <div class="menu-items-wrapper">
         <el-menu-item
@@ -35,12 +33,12 @@
       @close="closeDialog(1)"
     >
       <div>
-        <h3>影像处理功能</h3>
-        <p>影像处理功能包括：</p>
+        <h3>数据查询功能</h3>
+        <p>数据查询功能包括：</p>
         <ul>
-          <li>影像校正</li>
-          <li>影像增强</li>
-          <li>影像分类</li>
+          <li>区域查询</li>
+          <li>时间查询</li>
+          <li>条件筛选</li>
         </ul>
       </div>
     </DraggableDialog>
@@ -143,9 +141,8 @@ const props = defineProps({
 })
 
 const router = useRouter()
-const isCollapse = ref(true)
 const dialogStates = ref({
-  1: { visible: false, title: '影像处理' },
+  1: { visible: false, title: '数据查询' },
   2: { visible: false, title: '种植区提取' },
   3: { visible: false, title: '产量估算' },
   4: { visible: false, title: '耕地数据叠加与分析' },
@@ -153,7 +150,7 @@ const dialogStates = ref({
 })
 
 let asidelist = ref([
-   {id:1, title:'影像处理', icon:Picture},
+   {id:1, title:'数据查询', icon:Picture, route: '/tianditu'},
    {id:2, title:'种植区提取', icon:Crop},
    {id:3, title:'产量估算', icon:DataAnalysis},
    {id:4, title:'耕地数据叠加与分析', icon:Histogram},
@@ -180,36 +177,24 @@ const closeDialog = (id) => {
 }
 
 const emit = defineEmits(['openDataManagement'])
-
-const expandMenu = () => {
-  isCollapse.value = false
-}
-
-const collapseMenu = () => {
-  // 检查是否有任何对话框处于显示状态
-  const anyDialogVisible = Object.values(dialogStates.value).some(dialog => dialog.visible)
-  
-  // 只有在没有对话框显示且数据管理弹窗未显示时才收缩菜单
-  if (!anyDialogVisible && !props.dataManagementVisible) {
-    isCollapse.value = true
-  }
-}
 </script>
 
 <style scoped>
 .aside {
-  height: calc(100vh - 64px);
-  min-height: calc(100vh - 64px);
+  height: calc(100vh - 30px);
+  min-height: calc(100vh - 30px);
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   background: transparent;
   padding: 0;
-  margin-top: 64px;
+  margin-top: 30px;
   position: fixed;
   left: 0;
   top: 0;
   transition: width 0.3s ease;
+  z-index: 99;
+  overflow-x: hidden; /* 禁止横向滚动条 */
 }
 
 .full-height-menu {
@@ -217,27 +202,57 @@ const collapseMenu = () => {
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  background: rgba(255,255,255,0.7) !important;
+  background: #1a1a1a !important;
   border-right: none !important;
   box-shadow: none;
+  overflow-x: hidden; /* 禁止横向滚动条 */
 }
 
 .menu-items-wrapper {
   flex: 0;
   display: flex;
   flex-direction: column;
-  padding-top: 20px;
+  padding-top: 0;
 }
 
 .el-menu-vertical-demo {
   height: 100%;
   border-right: none;
   background: transparent;
+  overflow-x: hidden; /* 禁止横向滚动条 */
 }
 
 .el-menu-item {
-  height: 60px !important;
-  line-height: 60px !important;
-  margin-bottom: 8px !important;
+  height: 40px !important;
+  line-height: 40px !important;
+  margin-bottom: 0 !important;
+  padding: 0 20px !important;
+}
+
+:deep(.el-menu-item) {
+  &:hover {
+    background-color: #2c2c2c !important;
+  }
+  
+  &.is-active {
+    background-color: #2c2c2c !important;
+    color: #e6e6e6 !important;
+  }
+}
+
+:deep(.el-menu--collapse) {
+  width: 64px !important;
+}
+
+:deep(.el-menu-item .el-icon) {
+  color: #b8b8b8 !important;
+}
+
+:deep(.el-menu-item.is-active .el-icon) {
+  color: #e6e6e6 !important;
+}
+
+:deep(.el-menu-item:hover .el-icon) {
+  color: #e6e6e6 !important;
 }
 </style>
