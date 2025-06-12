@@ -7,7 +7,7 @@
         <h1>WELCOME</h1>
         <p>JOIN US!</p>
         <div class="login-img-box">
-          <img src="../assets/img/waoku.png" alt="" id="avatar" />
+          <!-- <img src="../assets/img/waoku.png" alt="" id="avatar" /> -->
         </div>
       </div>
       <!-- 注册盒子 -->

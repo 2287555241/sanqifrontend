@@ -68,7 +68,7 @@
         </div>
         <div class="file-tip">
           <el-icon><InfoFilled /></el-icon>
-          支持.tif, .shp, .geojson格式，文件大小不超过50MB
+          支持上传 zip（矢量包）、geojson（矢量）、tiff/tif（栅格）格式的文件，文件大小不超过200MB
         </div>
       </div>
 
@@ -168,6 +168,12 @@ const selectedFileName = ref('')
 const description = ref('')
 const storageDir = ref('default')
 const customDirPath = ref('')
+const uploadInfo = ref({
+  show: false,
+  type: '',
+  message: '',
+  description: ''
+})
 
 // 文件上传前的验证
 const beforeUpload = (file) => {

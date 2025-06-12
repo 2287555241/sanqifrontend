@@ -4,6 +4,7 @@ import Home from '@/views/Home.vue'
 import HelpCenter from '@/views/HelpCenter.vue'
 import AboutUs from '@/views/AboutUs.vue'
 import Service from '@/views/Service.vue'
+import MapView from '@/views/MapView.vue'
 
 const routes = [
   {
@@ -89,6 +90,21 @@ const routes = [
     meta: {
       requiresAuth: true // 需要登录验证
     }
+  },
+  // 添加地图查看路由
+  {
+    path: '/tianditu',
+    name: 'tianditu',
+    component: Index, // 使用主布局框架
+    meta: {
+      requiresAuth: false // 不需要登录验证
+    },
+    children: [
+      {
+        path: '',
+        component: MapView
+      }
+    ]
   }
 ]
 
