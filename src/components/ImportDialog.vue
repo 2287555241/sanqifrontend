@@ -44,23 +44,24 @@
             class="custom-input"
           >
             <template #append>
-      <el-upload
+              <el-upload
                 class="upload-hidden"
-        action="/api/upload"
+                action="/api/upload"
                 :show-file-list="false"
-        :on-success="handleSuccess"
-        :on-error="handleError"
-        :before-upload="beforeUpload"
-<<<<<<< HEAD
-                accept=".tif,.shp,.geojson"
-=======
-        accept=".zip,.geojson,.tiff,.tif"
->>>>>>> dd6dd2e0d24d72f0af6a80fa94212742456e0912
-      >
+                :on-success="handleSuccess"
+                :on-error="handleError"
+                :before-upload="beforeUpload"
+                accept=".zip,.geojson,.tiff,.tif"
+              >
                 <el-button type="primary" class="upload-button">
                   <el-icon class="upload-icon"><Upload /></el-icon>
                   选择文件
                 </el-button>
+                <template #tip>
+                  <div class="el-upload__tip">
+                    支持上传 zip（矢量包）、geojson（矢量）、tiff/tif（栅格）格式的文件
+                  </div>
+                </template>
               </el-upload>
             </template>
           </el-input>
@@ -69,13 +70,7 @@
           <el-icon><InfoFilled /></el-icon>
           支持.tif, .shp, .geojson格式，文件大小不超过50MB
         </div>
-<<<<<<< HEAD
-=======
-        <template #tip>
-          <div class="el-upload__tip">
-            支持上传 zip（矢量包）、geojson（矢量）、tiff/tif（栅格）格式的文件
->>>>>>> dd6dd2e0d24d72f0af6a80fa94212742456e0912
-          </div>
+      </div>
 
       <!-- 描述输入 -->
       <div class="description-input section">
@@ -176,21 +171,6 @@ const customDirPath = ref('')
 
 // 文件上传前的验证
 const beforeUpload = (file) => {
-<<<<<<< HEAD
-  const isValidFormat = /\.(tif|shp|geojson)$/i.test(file.name)
-  const isLt50M = file.size / 1024 / 1024 < 50
-
-  if (!isValidFormat) {
-    ElMessage.error('只能上传 .tif, .shp, .geojson 格式的文件!')
-    return false
-  }
-  if (!isLt50M) {
-    ElMessage.error('文件大小不能超过 50MB!')
-    return false
-  }
-
-  selectedFileName.value = file.name
-=======
   // 允许的扩展名
   const allowedExts = ['.zip', '.geojson', '.tiff', '.tif']
   const name = file.name.toLowerCase()
@@ -214,7 +194,6 @@ const beforeUpload = (file) => {
     message: '正在上传... (' + fileType + ')',
     description: `文件名：${file.name}`
   }
->>>>>>> dd6dd2e0d24d72f0af6a80fa94212742456e0912
   uploading.value = true
   return true
 }
