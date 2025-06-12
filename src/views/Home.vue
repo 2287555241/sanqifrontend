@@ -73,7 +73,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import NavHeader from './navHeader.vue'
 import { loadModules } from 'esri-loader'
 import { 
@@ -82,9 +82,11 @@ import {
   Crop, 
   ArrowRight
 } from '@element-plus/icons-vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
+import { ElMessage } from 'element-plus'
 
 const router = useRouter()
+const route = useRoute()
 
 // 滚动状态
 const scrolled = ref(false)
@@ -120,11 +122,11 @@ const initMap = () => {
     // 创建天地图图层
     const baseLayers = [
       new WebTileLayer({ 
-        urlTemplate: `http://t0.tianditu.gov.cn/DataServer?T=img_w&x={x}&y={y}&l={z}&tk=${tk}`,
+        urlTemplate: `https://t0.tianditu.gov.cn/DataServer?T=img_w&x={x}&y={y}&l={z}&tk=${tk}`,
         copyright: "天地图"
       }),
       new WebTileLayer({ 
-        urlTemplate: `http://t0.tianditu.gov.cn/DataServer?T=cia_w&x={x}&y={y}&l={z}&tk=${tk}`,
+        urlTemplate: `https://t0.tianditu.gov.cn/DataServer?T=cia_w&x={x}&y={y}&l={z}&tk=${tk}`,
         copyright: "天地图"
       })
     ]
@@ -227,8 +229,37 @@ const feedbacks = ref([
 ])
 
 const handleStart = () => {
-  router.push('/index')
+  // 检查用户是否已登录
+  const token = window.sessionStorage.getItem('token')
+  
+  if (token) {
+    // 已登录，直接跳转
+    router.push('/index')
+  } else {
+    // 未登录，显示提示消息
+    ElMessage({
+      message: '请先登录后再使用系统',
+      type: 'warning',
+      duration: 2000
+    })
+  }
 }
+
+// 监听路由查询参数变化，处理登录弹窗
+watch(() => route.query.showLogin, (newVal) => {
+  if (newVal === 'true') {
+    // 通过事件总线或其他方式触发登录弹窗
+    // 这里我们使用一个自定义事件
+    window.dispatchEvent(new CustomEvent('show-login-modal', { detail: { tab: 'login' } }))
+    
+    // 清除查询参数
+    if (router.currentRoute.value.query.showLogin) {
+      router.replace({
+        path: router.currentRoute.value.path
+      })
+    }
+  }
+}, { immediate: true })
 </script>
 
 <style scoped>

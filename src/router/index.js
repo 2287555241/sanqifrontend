@@ -121,13 +121,12 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const token = window.sessionStorage.getItem('token')
   
-  // 需要认证但无 token，跳转到登录页
+  // 需要认证但无 token，跳转到首页并显示登录弹窗
   if (to.meta.requiresAuth && !token) {
-    next('/login')
-  } 
-  // 已登录时访问登录页，跳转到首页
-  else if (to.path === '/login' && token) {
-    next('/main')
+    // 将目标路径保存在会话存储中，以便登录后重定向
+    window.sessionStorage.setItem('redirectPath', to.fullPath)
+    // 跳转到主页，并通过查询参数触发登录弹窗
+    next({ path: '/main', query: { showLogin: 'true' } })
   } 
   // 其他情况正常放行
   else {

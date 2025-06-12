@@ -21,14 +21,6 @@
                 </div>
               </template>
             </el-radio>
-            <el-radio label="missing">
-              <template #default>
-                <div class="radio-content">
-                  <el-icon><Location /></el-icon>
-                  <span>矢量数据</span>
-                </div>
-              </template>
-            </el-radio>
           </el-radio-group>
         </div>
       </div>

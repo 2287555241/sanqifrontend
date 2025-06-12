@@ -80,7 +80,9 @@
 <script>
 import { ElButton, ElCard, ElSwitch, ElRadioGroup, ElRadioButton, ElInput, ElScrollbar } from 'element-plus'
 import { Search } from '@element-plus/icons-vue'
-import AMapLoader from '@amap/amap-jsapi-loader'
+import axios from 'axios'
+// 不使用 AMap Loader，改为直接加载
+// import AMapLoader from '@amap/amap-jsapi-loader'
 
 export default {
   name: 'MapView',
@@ -110,7 +112,10 @@ export default {
       searchKeyword: '',
       searchResults: [],
       placeSearch: null,
-      currentMarker: null
+      currentMarker: null,
+      // 三七区域数据
+      sanqiRegions: [],
+      sanqiPolygons: []
     }
   },
   mounted() {
@@ -142,19 +147,12 @@ export default {
       
       try {
         console.log('开始初始化高德地图');
-        // 确保安全密钥已经设置
-        if (!window._AMapSecurityConfig) {
-          console.warn('未检测到安全密钥配置，正在设置...');
-          window._AMapSecurityConfig = {
-            securityJsCode: this.amapKey
-          };
-        }
-
         const AMap = await this.loadAMapAPI();
         console.log('高德地图API加载成功:', AMap);
         if (!AMap) {
           throw new Error('高德地图API加载失败：AMap 对象为空');
         }
+        this.loadingText = '正在初始化地图...';
         await this.initMap();
       } catch (error) {
         console.error('初始化高德地图失败:', error);
@@ -171,26 +169,58 @@ export default {
           return;
         }
 
-        AMapLoader.load({
-          key: this.amapKey,
-          version: '2.0',
-          plugins: [
-            'AMap.Scale',
-            'AMap.ToolBar'
-          ],
-          // 添加 AMap.js 加载超时时间
-          timeout: 10000,
-          // 开启缓存
-          useCache: true,
-          // 开启 HTTPS
-          protocol: 'https'
-        }).then(AMap => {
-          console.log('AMap加载成功');
-          resolve(AMap);
-        }).catch(error => {
-          console.error('加载高德地图API时出错:', error);
-          reject(new Error('加载高德地图API失败: ' + (error.message || '未知错误')));
-        });
+        // 如果AMap对象不存在，可能是index.html中的脚本还没加载完成
+        // 等待一段时间再检查
+        let checkCount = 0;
+        const maxChecks = 20; // 减少检查次数
+        const checkInterval = 500; // 减少检查间隔
+        
+        const checkAMap = () => {
+          if (window.AMap) {
+            console.log('AMap对象已加载，版本:', window.AMap.v);
+            resolve(window.AMap);
+            return;
+          }
+          
+          checkCount++;
+          if (checkCount >= maxChecks) {
+            console.error('AMap对象加载失败，尝试重新加载脚本');
+            // 尝试重新加载脚本
+            const oldScript = document.querySelector('script[src*="webapi.amap.com"]');
+            if (oldScript) {
+              oldScript.remove();
+            }
+            
+            // 加载必要的插件
+            const script = document.createElement('script');
+            script.type = 'text/javascript';
+            script.src = 'https://webapi.amap.com/maps?v=1.4.15&key=f7aa41ab3112b5fc450b547c00771fdc&plugin=AMap.Scale,AMap.ToolBar,AMap.DistrictSearch,AMap.PlaceSearch,AMap.DistrictLayer';
+            script.async = true; // 使用异步加载
+            script.onload = () => {
+              console.log('AMap脚本加载成功');
+              if (window.AMap) {
+                resolve(window.AMap);
+              } else {
+                setTimeout(() => {
+                  if (window.AMap) {
+                    resolve(window.AMap);
+                  } else {
+                    reject(new Error('AMap加载失败'));
+                  }
+                }, 1000);
+              }
+            };
+            script.onerror = () => {
+              reject(new Error('AMap脚本加载失败'));
+            };
+            document.head.appendChild(script);
+            return;
+          }
+          
+          setTimeout(checkAMap, checkInterval);
+        };
+        
+        checkAMap();
       });
     },
     async initMap() {
@@ -206,7 +236,7 @@ export default {
           mapStyle: 'amap://styles/dark',
           viewMode: '3D',
           skyColor: '#1a1a1a',
-          features: ['bg', 'road', 'building', 'point'],
+          features: ['bg', 'road'], // 只加载背景和道路图层，减少加载内容
           showBuildingBlock: false,
           rotateEnable: true,
           pitchEnable: true,
@@ -215,6 +245,7 @@ export default {
           doubleClickZoom: true,
           zoomEnable: true,
           preloadMode: true,
+          cacheSize: 1000, // 设置缓存大小
           expandZoomRange: true,
           zooms: [6, 18],
           defaultCursor: 'grab',
@@ -225,6 +256,9 @@ export default {
         };
 
         this.map = new AMap.Map(this.$refs.mapContainer, mapOptions);
+
+        // 创建卫星图层
+        this.satellite = new AMap.TileLayer.Satellite();
 
         // 等待地图加载完成
         await new Promise((resolve, reject) => {
@@ -246,12 +280,17 @@ export default {
           }, 10000);
         });
 
-        // 加载必要的插件
-        await new Promise((resolve) => {
-          AMap.plugin(['AMap.DistrictSearch', 'AMap.DistrictLayer', 'AMap.Text'], () => {
-            resolve();
+        // 插件已在HTML中预加载，这里检查必要的插件
+        console.log('检查必要的插件是否已加载');
+        // 在1.4.15中，Text可能需要单独加载
+        if (!AMap.Text) {
+          await new Promise((resolve) => {
+            AMap.plugin(['AMap.Text'], () => {
+              console.log('AMap.Text 插件已加载');
+              resolve();
+            });
           });
-        });
+        }
 
         // 创建行政区查询实例
         const districtSearch = new AMap.DistrictSearch({
@@ -306,6 +345,26 @@ export default {
               );
               this.map.setLimitBounds(provinceBounds);
 
+              // 添加省级和地区标注
+              if (province.center) {
+                const provinceText = new AMap.Text({
+                  text: '云南省',
+                  position: province.center,
+                  anchor: 'center',
+                  style: {
+                    'padding': '5px 10px',
+                    'backgroundColor': '#00000000',
+                    'borderColor': '#00000000',
+                    'color': '#ffffff',
+                    'fontSize': '16px',
+                    'fontWeight': 'bold',
+                    'textShadow': '1px 1px 3px #000000e6'
+                  },
+                  zIndex: 11
+                });
+                this.map.add(provinceText);
+              }
+
               // 添加地区标注
               if (province.districtList) {
                 province.districtList.forEach(district => {
@@ -351,61 +410,194 @@ export default {
               }
 
               // 添加行政区划层
-              const districtLayer = new AMap.DistrictLayer.Province({
-                zIndex: 5,
-                adcode: ['530000'],
-                depth: 2,
-                styles: {
-                  'fill': function() {
-                    return {
-                      color: '#2c2c2c1a',
-                      borderColor: '#3c3c3c',
-                      borderWidth: 1,
-                      borderType: 'solid'
-                    }
-                  },
-                  'province-stroke': function() {
-                    return {
-                      color: '#3c3c3c',
-                      width: 1.5
-                    }
-                  },
-                  'city-stroke': function() {
-                    return {
-                      color: '#2c2c2c',
-                      width: 1
-                    }
-                  },
-                  'county-stroke': function() {
-                    return {
-                      color: '#1a1a1a',
-                      width: 0.5
-                    }
-                  }
+                    // 注意：1.4.15版本可能没有DistrictLayer.Province，使用普通多边形代替
+      // 使用行政区划层
+      try {
+        if (AMap.DistrictLayer && AMap.DistrictLayer.Province) {
+          const districtLayer = new AMap.DistrictLayer.Province({
+            zIndex: 5,
+            adcode: ['530000'],
+            depth: 2,
+            styles: {
+              'fill': function() {
+                return {
+                  color: '#2c2c2c1a',
+                  borderColor: '#3c3c3c',
+                  borderWidth: 1,
+                  borderType: 'solid'
                 }
-              });
-              districtLayer.setMap(this.map);
+              },
+              'province-stroke': function() {
+                return {
+                  color: '#3c3c3c',
+                  width: 1.5
+                }
+              },
+              'city-stroke': function() {
+                return {
+                  color: '#2c2c2c',
+                  width: 1
+                }
+              },
+              'county-stroke': function() {
+                return {
+                  color: '#1a1a1a',
+                  width: 0.5
+                }
+              }
+            }
+          });
+          districtLayer.setMap(this.map);
+        } else {
+          console.warn('AMap.DistrictLayer.Province 不可用，跳过行政区划层显示');
+        }
+      } catch (error) {
+        console.error('创建行政区划层失败:', error);
+      }
             }
             resolve();
           });
         });
 
         // 初始化搜索服务
-        await new Promise((resolve) => {
-          AMap.plugin(['AMap.PlaceSearch'], () => {
-            this.placeSearch = new AMap.PlaceSearch({
-              pageSize: 10,
-              pageIndex: 1,
-              extensions: 'all',
-              city: '云南省'
-            });
-            resolve();
+        console.log('初始化地点搜索服务');
+        try {
+          this.placeSearch = new AMap.PlaceSearch({
+            pageSize: 10,
+            pageIndex: 1,
+            extensions: 'all',
+            city: '云南省'
           });
-        });
+          console.log('地点搜索服务初始化成功');
+        } catch (error) {
+          console.error('初始化地点搜索服务失败:', error);
+        }
+
+        // 加载三七种植区域数据
+        await this.loadSanqiRegions();
 
       } catch (error) {
         console.error('初始化地图失败:', error);
         this.handleError(error);
+      }
+    },
+    // 加载三七种植区域数据
+    async loadSanqiRegions() {
+      try {
+        console.log('开始加载三七种植区域数据');
+        this.loadingText = '正在加载三七种植区域数据...';
+        
+        // 清除旧的多边形
+        if (this.sanqiPolygons.length > 0) {
+          this.map.remove(this.sanqiPolygons);
+          this.sanqiPolygons = [];
+        }
+        
+        // 从后端API获取数据
+        const response = await axios.get('/api/SanqiRegion');
+        this.sanqiRegions = response.data;
+        
+        console.log('成功获取三七区域数据:', this.sanqiRegions);
+        
+        // 显示三七区域
+        this.renderSanqiRegions();
+      } catch (error) {
+        console.error('加载三七种植区域数据失败:', error);
+        // 不要中断整个地图显示
+        this.error = `加载三七区域数据失败: ${error.message || '未知错误'}`;
+        setTimeout(() => {
+          this.error = null;
+        }, 5000);
+      }
+    },
+    // 渲染三七区域
+    renderSanqiRegions() {
+      if (!this.map || !this.sanqiRegions || !this.sanqiRegions.features) {
+        console.error('无法渲染三七区域: 地图或数据不存在');
+        return;
+      }
+      
+      console.log(`开始渲染 ${this.sanqiRegions.features.length} 个三七区域`);
+      
+      try {
+        // 为每个区域创建多边形
+        this.sanqiRegions.features.forEach(feature => {
+          if (!feature.geometry || !feature.geometry.coordinates) {
+            console.warn('区域缺少坐标数据:', feature);
+            return;
+          }
+          
+          const geometry = feature.geometry;
+          const properties = feature.properties || {};
+          
+          try {
+            let paths = [];
+            
+            // 处理不同类型的几何形状
+            if (geometry.type === 'Polygon') {
+              // 多边形，只取第一个外环
+              paths = geometry.coordinates[0].map(coord => {
+                return new AMap.LngLat(coord[0], coord[1]);
+              });
+            } else if (geometry.type === 'MultiPolygon') {
+              // 多重多边形，每个子多边形取第一个外环
+              geometry.coordinates.forEach(polygon => {
+                const polygonPath = polygon[0].map(coord => {
+                  return new AMap.LngLat(coord[0], coord[1]);
+                });
+                paths.push(polygonPath);
+              });
+            } else {
+              console.warn('不支持的几何类型:', geometry.type);
+              return;
+            }
+            
+            // 创建多边形对象
+            const polygon = new AMap.Polygon({
+              path: paths,
+              strokeColor: '#FF0000',
+              strokeWeight: 2,
+              strokeOpacity: 0.8,
+              fillColor: '#FF4500',
+              fillOpacity: 0.4,
+              zIndex: 50,
+              bubble: true,
+              extData: properties
+            });
+            
+            // 添加点击事件
+            polygon.on('click', () => {
+              console.log('区域信息:', properties);
+              // 可以在这里显示详细信息窗口
+              const infoWindow = new AMap.InfoWindow({
+                content: `<div style="padding:10px;">
+                            <h3>${properties.name || '未命名区域'}</h3>
+                            <p>ID: ${properties.gid || '无'}</p>
+                          </div>`,
+                offset: new AMap.Pixel(0, -30)
+              });
+              
+              infoWindow.open(this.map, polygon.getBounds().getCenter());
+            });
+            
+            // 将多边形添加到地图
+            this.map.add(polygon);
+            this.sanqiPolygons.push(polygon);
+            
+          } catch (e) {
+            console.error('创建多边形失败:', e, feature);
+          }
+        });
+        
+        console.log(`成功渲染 ${this.sanqiPolygons.length} 个三七区域`);
+        
+        // 调整视图以显示所有区域
+        if (this.sanqiPolygons.length > 0) {
+          this.map.setFitView(this.sanqiPolygons);
+        }
+        
+      } catch (error) {
+        console.error('渲染三七区域失败:', error);
       }
     },
     // 设置地图交互
@@ -538,9 +730,11 @@ export default {
       if (!this.map) return;
       
       try {
+        console.log('切换地图样式:', style);
+        
         // 移除卫星图层
         if (this.satellite) {
-          this.map.remove(this.satellite);
+          this.satellite.setMap(null);
         }
 
         switch (style) {
@@ -548,8 +742,16 @@ export default {
             this.map.setMapStyle('amap://styles/normal');
             break;
           case 'satellite':
+            // 先设置为标准样式
             this.map.setMapStyle('amap://styles/normal');
-            this.map.add(this.satellite);
+            // 添加卫星图层
+            if (this.satellite) {
+              this.satellite.setMap(this.map);
+            } else {
+              console.error('卫星图层未初始化');
+              this.satellite = new AMap.TileLayer.Satellite();
+              this.satellite.setMap(this.map);
+            }
             break;
           case 'dark':
             this.map.setMapStyle('amap://styles/dark');
@@ -570,15 +772,36 @@ export default {
         error: error
       });
       
+      // 减少重试间隔
+      const retryInterval = errorMsg.includes('超时') ? 3000 : 1500;
+      
       if (this.retryCount < this.maxRetries) {
         this.error = errorMsg + '，正在重试 (' + (this.retryCount + 1) + '/' + this.maxRetries + ')...';
         this.retryCount++;
-        console.log('尝试重新加载地图，重试次数:', this.retryCount);
+        console.log(`尝试重新加载地图，重试次数: ${this.retryCount}，等待 ${retryInterval/1000} 秒`);
+        
         setTimeout(() => {
+          // 清除可能存在的旧的AMap对象
+          if (window.AMap) {
+            console.log('清除旧的AMap对象');
+            delete window.AMap;
+          }
+          
+          // 重新加载地图脚本 - 加载必要的插件
+          const oldScript = document.querySelector('script[src*="webapi.amap.com"]');
+          if (oldScript) {
+            oldScript.remove();
+          }
+          const script = document.createElement('script');
+          script.type = 'text/javascript';
+          script.src = 'https://webapi.amap.com/maps?v=1.4.15&key=f7aa41ab3112b5fc450b547c00771fdc&plugin=AMap.Scale,AMap.ToolBar,AMap.DistrictSearch,AMap.PlaceSearch,AMap.DistrictLayer';
+          script.async = true;
+          document.head.appendChild(script);
+          
           this.initAMap();
-        }, 2000);
+        }, retryInterval);
       } else {
-        this.error = errorMsg + '，请点击重试按钮重新加载';
+        this.error = errorMsg + '，请刷新页面重试';
         console.error('重试次数已达上限，停止自动重试');
       }
     },
