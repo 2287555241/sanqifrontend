@@ -26,8 +26,104 @@
         </el-dropdown>
         
         <div v-else class="auth-buttons">
-          <el-button type="primary" size="small" @click="navigateTo('/login')">登录</el-button>
-          <el-button size="small" @click="navigateTo('/login?register=true')">注册</el-button>
+          <el-button type="primary" size="small" @click="showLoginModal('login')">登录</el-button>
+          <el-button size="small" @click="showLoginModal('register')">注册</el-button>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 登录/注册弹窗 -->
+    <!-- <login-modal 
+      v-model:visible="loginModalVisible" 
+      :default-tab="loginModalTab"
+      @login-success="handleLoginSuccess"
+      @register-success="handleRegisterSuccess"
+    /> -->
+    
+    <!-- 自定义下拉式登录弹窗 -->
+    <div class="dropdown-auth-container" v-show="loginModalVisible">
+      <div class="dropdown-auth-content" 
+           :class="{ 'dropdown-auth-visible': loginModalVisible }"
+           @click.stop>
+        <div class="auth-container">
+          <div class="auth-header">
+            <div class="auth-header-top">
+              <h2>{{ loginModalTab === 'login' ? '欢迎回来' : '创建账号' }}</h2>
+              <el-button class="close-btn" @click="loginModalVisible = false" circle>
+                <el-icon><Close /></el-icon>
+              </el-button>
+            </div>
+            <p class="auth-subtitle">{{ loginModalTab === 'login' ? '很高兴再次见到您' : '加入我们，开启您的旅程' }}</p>
+          </div>
+          
+          <div v-if="loginModalTab === 'login'">
+            <el-form class="custom-form">
+              <el-form-item>
+                <el-input 
+                  v-model="tempLoginForm.username" 
+                  placeholder="请输入用户名"
+                  prefix-icon="User"
+                  class="custom-input"
+                />
+              </el-form-item>
+              <el-form-item>
+                <el-input 
+                  v-model="tempLoginForm.password" 
+                  type="password" 
+                  placeholder="请输入密码"
+                  prefix-icon="Lock"
+                  class="custom-input"
+                  @keyup.enter="tempLogin"
+                />
+              </el-form-item>
+            </el-form>
+            <div class="auth-actions">
+              <el-button type="primary" class="auth-submit" @click="tempLogin">登录</el-button>
+              <div class="auth-divider">
+                <span>还没有账号？</span>
+              </div>
+              <el-button class="auth-switch" @click="switchToRegister">注册新账号</el-button>
+            </div>
+          </div>
+
+          <div v-else>
+            <el-form class="custom-form">
+              <el-form-item>
+                <el-input 
+                  v-model="tempRegisterForm.username" 
+                  placeholder="请输入用户名"
+                  prefix-icon="User"
+                  class="custom-input"
+                />
+              </el-form-item>
+              <el-form-item>
+                <el-input 
+                  v-model="tempRegisterForm.password" 
+                  type="password" 
+                  placeholder="请输入密码"
+                  prefix-icon="Lock"
+                  class="custom-input"
+                />
+              </el-form-item>
+              <el-form-item>
+                <el-input 
+                  v-model="tempRegisterForm.confirmPassword" 
+                  type="password" 
+                  placeholder="请确认密码"
+                  prefix-icon="Lock"
+                  class="custom-input"
+                  @keyup.enter="tempRegister"
+                />
+              </el-form-item>
+            </el-form>
+            <div class="auth-actions">
+              <el-button type="primary" class="auth-submit" @click="tempRegister">注册</el-button>
+              <div class="auth-divider">
+                <span>已有账号？</span>
+              </div>
+              <el-button class="auth-switch" @click="switchToLogin">返回登录</el-button>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -35,12 +131,128 @@
 </template>
 
 <script setup>
-import { ref, computed } from 'vue'
-import { Bell, QuestionFilled, CirclePlus, User, Setting, SwitchButton } from '@element-plus/icons-vue'
-import { useRouter } from 'vue-router'
+import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
+import { Bell, QuestionFilled, CirclePlus, User, Setting, SwitchButton, Close } from '@element-plus/icons-vue'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
+// import LoginModal from '@/components/LoginModal.vue'
+// import mySwitch, { flag } from '@/utils/mySwitch' // 不再导入 mySwitch
 
 const router = useRouter()
+const route = useRoute()
+
+// 登录弹窗控制
+const loginModalVisible = ref(false)
+const loginModalTab = ref('login')
+
+// 监听自定义事件以显示登录弹窗
+const handleShowLoginModal = (event) => {
+  const tab = event.detail?.tab || 'login'
+  showLoginModal(tab)
+}
+
+onMounted(() => {
+  window.addEventListener('show-login-modal', handleShowLoginModal)
+  
+  // 检查URL参数是否需要显示登录弹窗
+  if (route.query.showLogin === 'true') {
+    showLoginModal('login')
+    // 清除查询参数
+    router.replace({
+      path: route.path
+    })
+  }
+})
+
+onUnmounted(() => {
+  window.removeEventListener('show-login-modal', handleShowLoginModal)
+  document.removeEventListener('click', handleOutsideClick)
+})
+
+// 显示登录弹窗
+const showLoginModal = (tab) => {
+  console.log('点击了登录/注册按钮，tab:', tab)
+  console.log('当前登录状态:', isLoggedIn.value)
+  
+  loginModalTab.value = tab
+  loginModalVisible.value = true
+  console.log('设置弹窗可见性为:', loginModalVisible.value)
+  
+  // 添加点击外部区域关闭弹窗的事件
+  setTimeout(() => {
+    document.addEventListener('click', handleOutsideClick)
+  }, 0)
+}
+
+// 处理点击外部区域关闭弹窗
+const handleOutsideClick = (event) => {
+  const dropdown = document.querySelector('.dropdown-auth-content')
+  const authButtons = document.querySelector('.auth-buttons')
+  const switchButtons = document.querySelectorAll('.auth-switch')
+  
+  // 检查是否点击了切换按钮
+  let clickedSwitchButton = false
+  switchButtons.forEach(button => {
+    if (button.contains(event.target)) {
+      clickedSwitchButton = true
+    }
+  })
+  
+  // 如果点击了切换按钮，不关闭弹窗
+  if (clickedSwitchButton) {
+    return
+  }
+  
+  if (dropdown && !dropdown.contains(event.target) && 
+      authButtons && !authButtons.contains(event.target)) {
+    loginModalVisible.value = false
+    document.removeEventListener('click', handleOutsideClick)
+  }
+}
+
+// 处理登录/注册切换
+const switchToRegister = (event) => {
+  console.log('切换到注册表单')
+  loginModalTab.value = 'register'
+  console.log('切换后 loginModalTab:', loginModalTab.value)
+  
+  // 可以在这里添加其他逻辑，如重置表单
+  tempRegisterForm.username = tempLoginForm.username || ''
+  tempRegisterForm.password = ''
+  tempRegisterForm.confirmPassword = ''
+  
+  // 阻止事件冒泡，避免点击事件被外部点击处理器捕获
+  if (event) event.stopPropagation()
+}
+
+const switchToLogin = (event) => {
+  console.log('切换到登录表单')
+  loginModalTab.value = 'login'
+  console.log('切换后 loginModalTab:', loginModalTab.value)
+  
+  // 可以在这里添加其他逻辑，如重置表单
+  tempLoginForm.username = tempRegisterForm.username || ''
+  tempLoginForm.password = ''
+  
+  // 阻止事件冒泡，避免点击事件被外部点击处理器捕获
+  if (event) event.stopPropagation()
+}
+
+// 处理登录成功
+const handleLoginSuccess = (userData) => {
+  loginModalVisible.value = false
+  ElMessage.success('登录成功')
+  // 刷新页面以更新状态
+  setTimeout(() => {
+    window.location.reload()
+  }, 300)
+}
+
+// 处理注册成功
+const handleRegisterSuccess = () => {
+  loginModalTab.value = 'login' // 切换到登录标签
+  ElMessage.success('注册成功，请登录')
+}
 
 const isLoggedIn = computed(() => {
   return window.sessionStorage.getItem('token') !== null
@@ -90,6 +302,66 @@ const userMenuItems = [
   { icon: Setting, text: '设置', action: 'settings' },
   { icon: SwitchButton, text: '退出登录', action: 'logout' }
 ]
+
+// 临时表单数据
+const tempLoginForm = reactive({
+  username: '',
+  password: ''
+})
+
+const tempRegisterForm = reactive({
+  username: '',
+  password: '',
+  confirmPassword: ''
+})
+
+// 临时登录方法
+const tempLogin = () => {
+  if (!tempLoginForm.username || !tempLoginForm.password) {
+    ElMessage.warning('请输入用户名和密码')
+    return
+  }
+  
+  // 模拟登录成功
+  sessionStorage.setItem('token', 'user-authenticated')
+  sessionStorage.setItem('userInfo', JSON.stringify({ username: tempLoginForm.username }))
+  
+  loginModalVisible.value = false
+  ElMessage.success('登录成功')
+  
+  // 检查是否有重定向路径
+  const redirectPath = sessionStorage.getItem('redirectPath')
+  if (redirectPath) {
+    sessionStorage.removeItem('redirectPath') // 清除重定向路径
+    setTimeout(() => {
+      router.push(redirectPath) // 重定向到目标页面
+    }, 300)
+  } else {
+    // 没有重定向路径，刷新页面以更新状态
+    setTimeout(() => {
+      window.location.reload()
+    }, 300)
+  }
+}
+
+// 临时注册方法
+const tempRegister = () => {
+  if (!tempRegisterForm.username || !tempRegisterForm.password) {
+    ElMessage.warning('请输入用户名和密码')
+    return
+  }
+  
+  if (tempRegisterForm.password !== tempRegisterForm.confirmPassword) {
+    ElMessage.warning('两次输入的密码不一致')
+    return
+  }
+  
+  // 模拟注册成功
+  ElMessage.success('注册成功')
+  switchToLogin()
+  tempLoginForm.username = tempRegisterForm.username
+  tempLoginForm.password = ''
+}
 </script>
 
 <style scoped>
@@ -255,5 +527,213 @@ const userMenuItems = [
   border-color: #5aabff;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+}
+
+/* 动画效果 */
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 下拉式登录弹窗样式 */
+.dropdown-auth-container {
+  position: absolute;
+  top: 64px;
+  right: 40px;
+  z-index: 2000;
+}
+
+.dropdown-auth-content {
+  width: 380px;
+  background: white;
+  border-radius: 12px;
+  box-shadow: 0 6px 30px rgba(0, 0, 0, 0.12);
+  overflow: hidden;
+  transform: translateY(-20px);
+  opacity: 0;
+  transition: all 0.3s cubic-bezier(0.23, 1, 0.32, 1);
+  pointer-events: none;
+}
+
+.dropdown-auth-visible {
+  transform: translateY(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+.auth-container {
+  padding: 24px;
+  background: white;
+}
+
+.auth-header-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+.close-btn {
+  padding: 8px;
+  font-size: 16px;
+  color: #909399;
+  border: none;
+  background: transparent;
+}
+
+.close-btn:hover {
+  color: #409eff;
+  background: rgba(64, 158, 255, 0.1);
+}
+
+.auth-header {
+  margin-bottom: 24px;
+}
+
+.auth-header h2 {
+  font-size: 22px;
+  color: #2c3e50;
+  margin: 0;
+  font-weight: 600;
+}
+
+.auth-subtitle {
+  color: #606266;
+  font-size: 14px;
+  margin: 0;
+}
+
+.custom-form {
+  margin-bottom: 24px;
+}
+
+:deep(.custom-input .el-input__wrapper) {
+  background-color: #f5f7fa;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: none;
+  border: 1px solid #e4e7ed;
+  transition: all 0.3s ease;
+}
+
+:deep(.custom-input .el-input__wrapper:hover) {
+  border-color: #409eff;
+}
+
+:deep(.custom-input .el-input__wrapper.is-focus) {
+  border-color: #409eff;
+  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
+}
+
+:deep(.custom-input .el-input__inner) {
+  height: 40px;
+  line-height: 40px;
+}
+
+:deep(.custom-input .el-input__prefix-inner) {
+  font-size: 18px;
+  color: #909399;
+}
+
+.auth-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+}
+
+.auth-submit {
+  width: 100%;
+  height: 44px;
+  font-size: 16px;
+  font-weight: 500;
+  border-radius: 8px;
+  background: linear-gradient(135deg, #409eff 0%, #36d1dc 100%);
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.auth-submit:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(64, 158, 255, 0.3);
+}
+
+.auth-divider {
+  width: 100%;
+  text-align: center;
+  margin: 8px 0;
+  position: relative;
+}
+
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  width: 35%;
+  height: 1px;
+  background-color: #e4e7ed;
+}
+
+.auth-divider::before {
+  left: 0;
+}
+
+.auth-divider::after {
+  right: 0;
+}
+
+.auth-divider span {
+  background-color: #fff;
+  padding: 0 12px;
+  color: #909399;
+  font-size: 14px;
+}
+
+.auth-switch {
+  width: 100%;
+  height: 44px;
+  font-size: 16px;
+  border-radius: 8px;
+  border: 1px solid #dcdfe6;
+  transition: all 0.3s ease;
+}
+
+.auth-switch:hover {
+  border-color: #409eff;
+  color: #409eff;
+  background-color: rgba(64, 158, 255, 0.1);
+}
+
+/* 添加三角形指示器 */
+.dropdown-auth-content::before {
+  content: '';
+  position: absolute;
+  top: -8px;
+  right: 20px;
+  width: 16px;
+  height: 16px;
+  background: white;
+  transform: rotate(45deg);
+  box-shadow: -2px -2px 5px rgba(0, 0, 0, 0.04);
+  z-index: 0;
+}
+
+/* 确保内容在三角形上方 */
+.auth-container {
+  position: relative;
+  z-index: 1;
+}
+
+/* 优化按钮样式 */
+.auth-buttons {
+  display: flex;
+  gap: 10px;
 }
 </style>

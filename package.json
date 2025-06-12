@@ -10,7 +10,7 @@
   "dependencies": {
     "@amap/amap-jsapi-loader": "^1.0.1",
     "@element-plus/icons-vue": "^2.3.1",
-    "axios": "^1.8.4",
+    "axios": "^1.9.0",
     "cobe": "^0.6.3",
     "core-js": "^3.8.3",
     "element-plus": "^2.9.8",
@@ -19,7 +19,6 @@
     "nprogress": "^0.2.0",
     "pinia": "^3.0.2",
     "pinia-plugin-persistedstate": "^4.3.0",
-    "sanqifrontend": "file:",
     "vue": "^3.2.13",
     "vue-router": "^4.5.0",
     "vue-use-spring": "^0.3.3",
