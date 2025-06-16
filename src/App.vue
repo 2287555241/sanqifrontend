@@ -1,9 +1,19 @@
 <template>
-  <router-view/>
+  <div class="app-container">
+    <router-view/>
+    <div v-if="currentProject" class="project-name-footer">
+      <span class="project-name-label">项目：</span>
+      {{ currentProject.name }}
+    </div>
+  </div>
 </template>
 
-<script>
+<script setup>
+import { computed } from 'vue'
+import { useProjectStore } from './stores/project'
 
+const projectStore = useProjectStore()
+const currentProject = computed(() => projectStore.getCurrentProject())
 </script>
 
 <style>
@@ -33,4 +43,23 @@ body {
   min-height: 100vh;
 }
 
+.project-name-footer {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  padding: 5px 16px;
+  background-color: rgba(26, 26, 26, 0.9);
+  color: #e6e6e6;
+  font-size: 14px;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.project-name-label {
+  margin-right: 8px;
+  opacity: 0.8;
+}
 </style>

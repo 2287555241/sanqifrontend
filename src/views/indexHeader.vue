@@ -110,25 +110,45 @@ const handleClick = (action) => {
   }
 }
 
+const emit = defineEmits(['showProjectManagement'])
+
 const handleFileCommand = (command) => {
   switch (command) {
     case 'new':
-      ElMessage.info('新建项目功能开发中...')
+      // 检查用户是否已登录
+      if (!isLoggedIn.value) {
+        ElMessageBox.confirm(
+          '需要登录后才能创建项目，是否立即登录？',
+          '提示',
+          {
+            confirmButtonText: '去登录',
+            cancelButtonText: '取消',
+            type: 'warning'
+          }
+        ).then(() => {
+          // 保存当前路径，登录后跳转回来
+          sessionStorage.setItem('redirectPath', '/index')
+          router.push('/login')
+        }).catch(() => {})
+        return
+      }
+      // 已登录，触发显示项目管理弹窗事件
+      emit('showProjectManagement')
       break
     case 'open':
-      ElMessage.info('打开项目功能开发中...')
+      // 处理打开项目
       break
     case 'save':
-      ElMessage.success('保存成功')
+      // 处理保存
       break
     case 'export':
-      ElMessage.info('导出功能开发中...')
+      // 处理导出
       break
     case 'import':
-      ElMessage.info('导入功能开发中...')
+      // 处理导入
       break
     case 'settings':
-      ElMessage.info('设置功能开发中...')
+      // 处理设置
       break
   }
 }

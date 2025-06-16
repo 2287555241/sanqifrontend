@@ -105,6 +105,14 @@ const routes = [
         component: MapView
       }
     ]
+  },
+  {
+    path: '/project-management',
+    name: 'project-management',
+    component: () => import(/* webpackChunkName: "project-management" */ '@/components/ProjectManagement.vue'),
+    meta: {
+      requiresAuth: true
+    }
   }
 ]
 

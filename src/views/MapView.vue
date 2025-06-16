@@ -19,7 +19,8 @@
 
     <div ref="mapContainer" class="map-content"></div>
 
-    <div class="map-controls-sidebar">
+    <!-- 控制栏只在非纯地图模式下显示 -->
+    <div v-if="!isOnlyMapMode" class="map-controls-sidebar">
       <div class="control-panel">
         <div class="control-panel-section">
           <div class="control-panel-title">地图模式</div>
@@ -74,8 +75,9 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, markRaw } from 'vue'
+import { ref, onMounted, onBeforeUnmount, markRaw, computed, watch } from 'vue'
 import { ElMessage } from 'element-plus'
+import { useRoute } from 'vue-router'
 import { 
   Location, 
   Search, 
@@ -88,8 +90,40 @@ import {
   Hide
 } from '@element-plus/icons-vue'
 import axios from 'axios'
+import { useProjectStore } from '../stores/project'
+import { useUIStore } from '../stores/ui'
 // 不使用 AMap Loader，改为直接加载
 // import AMapLoader from '@amap/amap-jsapi-loader'
+
+// 获取路由参数
+const route = useRoute()
+const isOnlyMapMode = computed(() => route.query.onlyMap === 'true')
+const shouldFocusYunnan = computed(() => route.query.yunnanView === 'true')
+
+// UI状态管理
+const uiStore = useUIStore()
+
+// 监听地图模式变化
+watch([isOnlyMapMode, shouldFocusYunnan], ([newMapMode, newFocusYunnan]) => {
+  if (map.value) {
+    if (newMapMode) {
+      // 切换到纯地图模式，清除三七区域显示
+      if (sanqiPolygons.value.length > 0) {
+        map.value.remove(sanqiPolygons.value);
+        sanqiPolygons.value = [];
+      }
+    } else {
+      // 切换到完整模式，加载三七区域
+      loadSanqiRegions();
+      initializeMapFeatures();
+    }
+    
+    // 如果需要聚焦到云南省，则调用focusOnYunnan方法
+    if (newFocusYunnan) {
+      focusOnYunnan();
+    }
+  }
+});
 
 const icons = {
   location: markRaw(Location),
@@ -124,6 +158,9 @@ const sanqiPolygons = ref([])
 const pitch = ref(0)
 const rotation = ref(0)
 
+const projectStore = useProjectStore()
+const currentProject = computed(() => projectStore.getCurrentProject())
+
 onMounted(() => {
   console.log('MapView组件已挂载');
   initializeMap();
@@ -145,9 +182,16 @@ const initializeMap = async () => {
   try {
     loading.value = true;
     await initMap();
-    // 初始化完成后加载其他数据
-    await loadSanqiRegions();
-    await initializeMapFeatures();
+    
+    // 只在非纯地图模式下加载额外数据
+    if (!isOnlyMapMode.value) {
+      // 初始化完成后加载其他数据
+      await loadSanqiRegions();
+      await initializeMapFeatures();
+    } else {
+      // 纯地图模式下只加载基础地图
+      loading.value = false;
+    }
   } catch (error) {
     console.error('地图初始化失败:', error);
     handleError(error);
@@ -367,15 +411,15 @@ const initMap = async () => {
     console.log('开始创建地图实例，AMap对象已就绪');
     
     const mapOptions = {
-      zoom: 16, // 默认放大到16级，便于显示3D楼块
-      center: [102.712251, 25.040609],
+      zoom: 8, // 默认放大到8级，显示整个云南省
+      center: [102.8, 25.04], // 云南省中心位置
       mapStyle: 'amap://styles/dark',
       viewMode: '3D',
       skyColor: '#1a1a1a',
       features: ['bg', 'road', 'point', 'building', 'label'], // building必须有
       showBuildingBlock: true, // 开启3D楼块
-      rotateEnable: true,
-      pitchEnable: true,
+      rotateEnable: false, // 禁用旋转功能
+      pitchEnable: false, // 禁用倾斜功能
       dragEnable: true,
       keyboardEnable: true,
       doubleClickZoom: true,
@@ -391,7 +435,9 @@ const initMap = async () => {
       backgroundColor: '#1a1a1a',
       labelzIndex: 100,
       labelRejectMask: false,
-      labelCollision: false
+      labelCollision: false,
+      pitch: 0, // 将初始俯仰角设为0
+      rotation: 0 // 将初始旋转角设为0
     };
 
     // 确保容器元素存在
@@ -410,6 +456,24 @@ const initMap = async () => {
       
       // 添加地图标签控制
       setupMapLabels();
+      
+      // 设置地图视野到云南省
+      focusOnYunnan();
+      
+      // 监听视角变化，确保地图始终保持不倾斜和不旋转
+      map.value.on('pitch', (e) => {
+        // 如果俯仰角度不为0，则重置为0
+        if (map.value.getPitch() !== 0) {
+          map.value.setPitch(0);
+        }
+      });
+      
+      map.value.on('rotation', (e) => {
+        // 如果旋转角度不为0，则重置为0
+        if (map.value.getRotation() !== 0) {
+          map.value.setRotation(0);
+        }
+      });
     });
 
     // 添加错误处理
@@ -422,6 +486,30 @@ const initMap = async () => {
     console.error('初始化地图失败:', error);
     loading.value = false;
     throw error;
+  }
+}
+
+// 设置地图视野到云南省
+const focusOnYunnan = () => {
+  try {
+    // 云南省的大致边界范围
+    const yunnanBounds = new AMap.Bounds(
+      [97.31833, 21.14163],  // 西南角
+      [106.19016, 29.22041]  // 东北角
+    );
+    
+    // 调整视野范围
+    map.value.setBounds(yunnanBounds);
+    
+    // 设置俯视角度为0，确保地图不倾斜
+    map.value.setPitch(0);
+    
+    // 设置旋转角度为0，确保地图不旋转
+    map.value.setRotation(0);
+    
+    console.log('地图视野已设置到云南省，并已复原俯仰和旋转');
+  } catch (error) {
+    console.error('设置地图视野到云南省失败:', error);
   }
 }
 

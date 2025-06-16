@@ -34,15 +34,12 @@ const app = createApp(App)
 
 // 注册所有图标
 for (const [key, component] of Object.entries(ElementPlusIconsVue)) {
-  app.component(`el-icon-${key}`, component)
+  app.component(key, component)
 }
 
 app.use(pinia)
 app.use(router)
-app.use(ElementPlus, {
-  size: 'default',
-  zIndex: 3000
-})
+app.use(ElementPlus)
 
 // 初始化用户状态
 const userStore = useUserStore()
@@ -89,5 +86,5 @@ preloadAMap().then(() => {
   app.mount('#app')
 }).catch(error => {
   console.error('AMap预加载失败，但继续挂载应用:', error);
-  app.mount('#app')
+app.mount('#app')
 })
