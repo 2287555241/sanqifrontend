@@ -15,7 +15,9 @@
       <div class="header-right">
         <el-dropdown v-if="isLoggedIn">
           <span class="el-dropdown-link">
-            <el-avatar :size="36" src="el-icon-user" />
+            <el-avatar :size="36">
+              <el-icon><User /></el-icon>
+            </el-avatar>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
