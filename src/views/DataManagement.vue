@@ -1,12 +1,10 @@
 <template>
   <div class="data-management-container">
-    <h2 class="page-title">数据管理</h2>
-    
     <div class="data-content">
       <el-card class="data-card">
         <template #header>
           <div class="card-header">
-            <span>数据列表</span>
+            <span>数据管理</span>
             <div class="header-actions">
               <!-- 编辑模式下显示删除按钮，否则显示编辑按钮 -->
               <template v-if="editMode">
@@ -25,17 +23,17 @@
         <div class="tab-header">
           <div 
             class="tab-item" 
-            :class="{ active: activeTab === 'user' }" 
-            @click="activeTab = 'user'"
+            :class="{ active: activeTab === 'project' }" 
+            @click="activeTab = 'project'"
           >
-            用户数据
+            项目列表
           </div>
           <div 
             class="tab-item" 
-            :class="{ active: activeTab === 'local' }" 
-            @click="activeTab = 'local'"
+            :class="{ active: activeTab === 'data' }" 
+            @click="activeTab = 'data'"
           >
-            本地数据
+            数据列表
           </div>
         </div>
         
@@ -49,34 +47,43 @@
           header-align="center"
           v-loading="loading"
         >
-          <el-table-column v-if="editMode" type="selection" width="55" />
-          <el-table-column prop="name" label="数据名称" align="center" header-align="center" />
-          <el-table-column prop="rasterType" label="数据类型" align="center" header-align="center">
-            <template #default="scope">
-              <span>{{ scope.row.rasterType || '无' }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column prop="size" label="大小" align="center" header-align="center" />
-          <el-table-column prop="createdAt" label="创建时间" align="center" header-align="center">
-            <template #default="scope">
-              <span>{{ formatDate(scope.row.createdAt) }}</span>
-            </template>
-          </el-table-column>
-          <el-table-column label="图像预览" width="120">
-            <template #default="scope">
-              <div class="image-preview-cell">
-                <img 
-                  v-if="scope.row.thumbnailUrl"
-                  :src="scope.row.thumbnailUrl" 
-                  :alt="scope.row.name"
-                  class="preview-thumbnail"
-                  @click="handlePreview(scope.row)"
-                  @error="handleImageError(scope.row)"
-                />
-                <div v-else class="preview-placeholder"></div>
-              </div>
-            </template>
-          </el-table-column>
+          <template v-if="activeTab === 'data'">
+            <el-table-column v-if="editMode" type="selection" width="55" />
+            <el-table-column prop="name" label="数据名称" align="center" header-align="center" />
+            <el-table-column prop="rasterType" label="数据类型" align="center" header-align="center">
+              <template #default="scope">
+                <span>{{ scope.row.rasterType || '无' }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column prop="size" label="大小" align="center" header-align="center" />
+            <el-table-column prop="createdAt" label="创建时间" align="center" header-align="center">
+              <template #default="scope">
+                <span>{{ formatDate(scope.row.createdAt) }}</span>
+              </template>
+            </el-table-column>
+            <el-table-column label="图像预览" width="120">
+              <template #default="scope">
+                <div class="image-preview-cell">
+                  <img 
+                    v-if="scope.row.thumbnailUrl"
+                    :src="scope.row.thumbnailUrl" 
+                    :alt="scope.row.name"
+                    class="preview-thumbnail"
+                    @click="handlePreview(scope.row)"
+                    @error="handleImageError(scope.row)"
+                  />
+                  <div v-else class="preview-placeholder"></div>
+                </div>
+              </template>
+            </el-table-column>
+          </template>
+          <template v-else>
+            <el-table-column label="暂无数据" align="center">
+              <template #default>
+                <span>暂无项目数据</span>
+              </template>
+            </el-table-column>
+          </template>
         </el-table>
         
         <div class="pagination-container">
@@ -152,7 +159,7 @@ if (newVal) {
 })
 
 // 激活的选项卡
-const activeTab = ref('user')
+const activeTab = ref('data')
 
 // 数据相关
 const tableData = ref([])
@@ -220,8 +227,11 @@ const fetchData = async () => {
 
 // 分页后的数据
 const pagedTableData = computed(() => {
-const start = (currentPage.value - 1) * pageSize.value
-return tableData.value.slice(start, start + pageSize.value)
+  if (activeTab.value === 'project') {
+    return [] // 项目列表暂时为空
+  }
+  const start = (currentPage.value - 1) * pageSize.value
+  return tableData.value.slice(start, start + pageSize.value)
 })
 
 // 编辑模式
@@ -256,12 +266,13 @@ const handleDelete = async (row) => {
     const response = await axios.delete(`/api/raster/${row.id}`)
     if (response.data.success) {
       ElMessage.success('删除成功')
-      fetchData()
+      fetchData() // 重新获取数据列表
     } else {
       ElMessage.error(response.data.error || '删除失败')
     }
   } catch (error) {
     if (error !== 'cancel') {
+      console.error('删除失败:', error)
       ElMessage.error('删除失败')
     }
   }
@@ -270,7 +281,7 @@ const handleDelete = async (row) => {
 // 批量删除
 const handleBatchDelete = async () => {
   if (selectedRows.value.length === 0) return
-
+  
   try {
     await ElMessageBox.confirm(
       `确定要删除选中的 ${selectedRows.value.length} 项吗？`,
@@ -289,9 +300,10 @@ const handleBatchDelete = async () => {
     await Promise.all(deletePromises)
     ElMessage.success('批量删除成功')
     selectedRows.value = []
-    fetchData()
+    fetchData() // 重新获取数据列表
   } catch (error) {
     if (error !== 'cancel') {
+      console.error('批量删除失败:', error)
       ElMessage.error('批量删除失败')
     }
   }
@@ -330,8 +342,11 @@ currentPage.value = page
 }
 
 // 监听切换tab时重置分页
-watch(activeTab, () => {
-currentPage.value = 1
+watch(activeTab, (newTab) => {
+  currentPage.value = 1
+  if (newTab === 'data') {
+    fetchData() // 切换到数据列表时获取数据
+  }
 })
 
 const handleEdit = (row) => {
