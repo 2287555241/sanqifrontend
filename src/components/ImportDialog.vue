@@ -8,23 +8,6 @@
     class="import-dialog"
   >
     <div class="import-container">
-      <!-- 导入类型选择 -->
-      <div class="import-type section">
-        <span class="label">导入类型</span>
-        <div class="type-options">
-          <el-radio-group v-model="importType" class="custom-radio-group">
-            <el-radio label="shelf">
-              <template #default>
-                <div class="radio-content">
-                  <el-icon><Grid /></el-icon>
-                  <span>栅格数据</span>
-                </div>
-              </template>
-            </el-radio>
-          </el-radio-group>
-        </div>
-      </div>
-
       <!-- 文件选择 -->
       <div class="file-select section">
         <span class="label">选择文件</span>
@@ -38,12 +21,18 @@
             <template #append>
               <el-upload
                 class="upload-hidden"
-                action="/api/upload"
+                action="/api/raster/import"
                 :show-file-list="false"
                 :on-success="handleSuccess"
                 :on-error="handleError"
                 :before-upload="beforeUpload"
                 accept=".zip,.geojson,.tiff,.tif"
+                :auto-upload="false"
+                :file-list="fileList"
+                ref="uploadRef"
+                :on-change="handleFileChange"
+                :data="uploadData"
+                name="files"
               >
                 <el-button type="primary" class="upload-button">
                   <el-icon class="upload-icon"><Upload /></el-icon>
@@ -60,7 +49,7 @@
         </div>
         <div class="file-tip">
           <el-icon><InfoFilled /></el-icon>
-          支持上传 zip（矢量包）、geojson（矢量）、tiff/tif（栅格）格式的文件，文件大小不超过200MB
+          支持上传 zip（矢量包）、geojson（矢量）、tiff/tif（栅格）格式的文件
         </div>
       </div>
 
@@ -75,55 +64,6 @@
           class="custom-textarea"
           resize="none"
         />
-      </div>
-
-      <!-- 存储目录选择 -->
-      <div class="storage-select section">
-        <span class="label">存储目录</span>
-        <el-select 
-          v-model="storageDir" 
-          placeholder="请选择存储目录" 
-          class="full-width custom-select"
-        >
-          <el-option label="默认目录" value="default">
-            <template #default="{ label }">
-              <div class="select-option">
-                <el-icon><FolderOpened /></el-icon>
-                <span>{{ label }}</span>
-              </div>
-            </template>
-          </el-option>
-          <el-option label="自定义目录" value="custom">
-            <template #default="{ label }">
-              <div class="select-option">
-                <el-icon><FolderAdd /></el-icon>
-                <span>{{ label }}</span>
-              </div>
-            </template>
-          </el-option>
-        </el-select>
-      </div>
-
-      <!-- 自定义目录输入 -->
-      <div v-if="storageDir === 'custom'" class="custom-dir section">
-        <div class="custom-dir-input">
-          <el-input 
-            v-model="customDirPath" 
-            placeholder="输入新的存储目录路径"
-            class="custom-input"
-          >
-            <template #append>
-              <el-button type="primary" class="create-button">
-                <el-icon><Plus /></el-icon>
-                创建
-              </el-button>
-            </template>
-          </el-input>
-        </div>
-        <div class="dir-tip">
-          <el-icon><InfoFilled /></el-icon>
-          请输入完整的目录路径，新建的目录会自动加入到下拉列表中
-        </div>
       </div>
     </div>
 
@@ -151,15 +91,19 @@ import {
   Plus
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import axios from 'axios'
 
 const emit = defineEmits(['update:modelValue', 'success'])
 const dialogVisible = ref(false)
 const uploading = ref(false)
-const importType = ref('shelf')
 const selectedFileName = ref('')
 const description = ref('')
-const storageDir = ref('default')
-const customDirPath = ref('')
+const fileList = ref([])
+const uploadRef = ref(null)
+const uploadData = ref({
+  description: '',
+  directory: 'default'
+})
 const uploadInfo = ref({
   show: false,
   type: '',
@@ -181,32 +125,44 @@ const beforeUpload = (file) => {
   let fileType = '未知类型'
   if (ext === '.zip' || ext === '.geojson') fileType = '矢量文件'
   if (ext === '.tiff' || ext === '.tif') fileType = '栅格文件'
-  const isLt200M = file.size / 1024 / 1024 < 200
-  if (!isLt200M) {
-    ElMessage.error('文件大小不能超过 200MB!')
-    return false
-  }
   uploadInfo.value = {
     show: true,
     type: 'info',
     message: '正在上传... (' + fileType + ')',
     description: `文件名：${file.name}`
   }
+  // 更新上传数据
+  uploadData.value.description = description.value
   uploading.value = true
   return true
+}
+
+// 文件选择变化时
+const handleFileChange = (file, fileListArr) => {
+  fileList.value = fileListArr.slice(-1) // 只保留最后一个文件
+  selectedFileName.value = file.name
 }
 
 // 上传成功的回调
 const handleSuccess = (response) => {
   uploading.value = false
-  ElMessage.success('上传成功')
+  if (response.success) {
+    ElMessage.success(response.message || '上传成功')
+    emit('success', response.data)
+  } else {
+    ElMessage.error(response.error || '上传失败')
+  }
+  fileList.value = []
+  selectedFileName.value = ''
+  description.value = ''
 }
 
 // 上传失败的回调
 const handleError = (error) => {
   uploading.value = false
   selectedFileName.value = ''
-  ElMessage.error('上传失败，请重试')
+  fileList.value = []
+  ElMessage.error(error.response?.data?.error || '上传失败，请重试')
 }
 
 // 关闭弹窗
@@ -216,21 +172,23 @@ const handleClose = () => {
   // 重置状态
   selectedFileName.value = ''
   description.value = ''
-  storageDir.value = 'default'
-  customDirPath.value = ''
   uploading.value = false
+  fileList.value = []
 }
 
 // 确认导入
 const handleConfirm = () => {
-  if (!selectedFileName.value) {
+  if (!fileList.value.length) {
     ElMessage.warning('请先选择文件')
     return
   }
-  
-  // TODO: 这里可以添加实际的导入逻辑
-  emit('success')
-  handleClose()
+  if (!description.value.trim()) {
+    ElMessage.warning('请输入数据描述')
+    return
+  }
+  uploading.value = true
+  // 手动触发上传
+  uploadRef.value.submit()
 }
 
 // 监听父组件传入的显示状态
@@ -248,6 +206,11 @@ watch(
     dialogVisible.value = newVal
   }
 )
+
+// 监听描述变化
+watch(description, (newVal) => {
+  uploadData.value.description = newVal
+})
 </script>
 
 <style scoped>
@@ -290,22 +253,6 @@ watch(
   color: #2c3e50;
   font-weight: 500;
   font-size: 15px;
-}
-
-.custom-radio-group {
-  display: flex;
-  gap: 20px;
-}
-
-.radio-content {
-  display: flex;
-  align-items: center;
-  gap: 6px;
-}
-
-.radio-content .el-icon {
-  margin-right: 4px;
-  font-size: 16px;
 }
 
 .file-input {
