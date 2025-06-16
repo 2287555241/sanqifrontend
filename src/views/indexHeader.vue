@@ -23,9 +23,29 @@
               </el-dropdown-menu>
             </template>
           </el-dropdown>
-          <el-button type="primary" @click="handleButtonClick('button2')">按钮2</el-button>
-          <el-button type="primary" @click="handleButtonClick('button3')">按钮3</el-button>
-          <el-button type="primary" @click="handleButtonClick('button4')">按钮4</el-button>
+          <el-dropdown trigger="click" @command="handleEditCommand">
+            <el-button type="primary">编辑</el-button>
+            <template #dropdown>
+              <el-dropdown-menu class="file-dropdown">
+                <el-dropdown-item command="undo">撤销</el-dropdown-item>
+                <el-dropdown-item command="redo">重做</el-dropdown-item>
+                <el-dropdown-item divided command="cut">剪切</el-dropdown-item>
+                <el-dropdown-item command="copy">复制</el-dropdown-item>
+                <el-dropdown-item command="paste">粘贴</el-dropdown-item>
+                <el-dropdown-item divided command="selectAll">全选</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
+          <el-dropdown trigger="click" @command="handleHelpCommand">
+            <el-button type="primary">帮助</el-button>
+            <template #dropdown>
+              <el-dropdown-menu class="file-dropdown">
+                <el-dropdown-item command="guide">使用说明</el-dropdown-item>
+                <el-dropdown-item command="shortcuts">快捷键</el-dropdown-item>
+                <el-dropdown-item divided command="about">关于</el-dropdown-item>
+              </el-dropdown-menu>
+            </template>
+          </el-dropdown>
         </div>
       </div>
       
@@ -33,7 +53,9 @@
       <div class="header-right">
         <el-dropdown v-if="isLoggedIn">
           <span class="el-dropdown-link">
-            <el-avatar :size="24" src="el-icon-user" />
+            <el-avatar :size="24">
+              <el-icon><User /></el-icon>
+            </el-avatar>
           </span>
           <template #dropdown>
             <el-dropdown-menu>
@@ -56,6 +78,7 @@
 import { computed, ref, onMounted } from 'vue'
 import { useRouter } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
+import { Edit, User } from '@element-plus/icons-vue'
 
 const router = useRouter()
 
@@ -110,9 +133,54 @@ const handleFileCommand = (command) => {
   }
 }
 
+const handleEditCommand = (command) => {
+  switch (command) {
+    case 'undo':
+      ElMessage.info('撤销操作')
+      break
+    case 'redo':
+      ElMessage.info('重做操作')
+      break
+    case 'cut':
+      ElMessage.info('剪切操作')
+      break
+    case 'copy':
+      ElMessage.info('复制操作')
+      break
+    case 'paste':
+      ElMessage.info('粘贴操作')
+      break
+    case 'selectAll':
+      ElMessage.info('全选操作')
+      break
+  }
+}
+
+const handleHelpCommand = (command) => {
+  switch (command) {
+    case 'guide':
+      ElMessage.info('这里是使用说明')
+      break
+    case 'shortcuts':
+      ElMessage.info('这里是快捷键列表')
+      break
+    case 'about':
+      ElMessage.info('三七种植遥感监测系统 v1.0')
+      break
+  }
+}
+
 const handleButtonClick = (buttonId) => {
   console.log(`点击了${buttonId}`)
   // 这里添加按钮点击后的具体逻辑
+  switch (buttonId) {
+    case 'button3':
+      // 按钮3的逻辑
+      break
+    case 'button4':
+      // 按钮4的逻辑
+      break
+  }
 }
 
 const navigateTo = (path) => {

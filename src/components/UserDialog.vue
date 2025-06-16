@@ -10,7 +10,9 @@
         <span class="dialog-close" @click="$emit('close')">×</span>
       </div>
       <div style="text-align:center; padding: 16px 0;">
-        <el-avatar size="large" icon="el-icon-user" />
+        <el-avatar size="large">
+          <el-icon><User /></el-icon>
+        </el-avatar>
         <div style="margin-top:10px;">用户名：张三</div>
         <div>邮箱：zhangsan@example.com</div>
       </div>

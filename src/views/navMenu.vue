@@ -43,7 +43,7 @@
       </div>
     </DraggableDialog>
 
-    <!-- 种植区提取对话框 -->
+    <!-- 数据分析区对话框（原种植区提取） -->
     <DraggableDialog
       :visible="dialogStates[2].visible"
       :title="dialogStates[2].title"
@@ -51,8 +51,8 @@
       @close="closeDialog(2)"
     >
       <div>
-        <h3>种植区提取功能</h3>
-        <p>种植区提取功能包括：</p>
+        <h3>数据分析区功能</h3>
+        <p>数据分析区功能包括：</p>
         <ul>
           <li>自动识别</li>
           <li>手动绘制</li>
@@ -143,7 +143,7 @@ const props = defineProps({
 const router = useRouter()
 const dialogStates = ref({
   1: { visible: false, title: '数据查询' },
-  2: { visible: false, title: '种植区提取' },
+  2: { visible: false, title: '数据分析区' },
   3: { visible: false, title: '产量估算' },
   4: { visible: false, title: '耕地数据叠加与分析' },
   5: { visible: false, title: '数据导出' }
@@ -151,7 +151,7 @@ const dialogStates = ref({
 
 let asidelist = ref([
    {id:1, title:'数据查询', icon:Picture, route: '/tianditu'},
-   {id:2, title:'种植区提取', icon:Crop},
+   {id:2, title:'数据分析区', icon:Crop},
    {id:3, title:'产量估算', icon:DataAnalysis},
    {id:4, title:'耕地数据叠加与分析', icon:Histogram},
    {id:5, title:'数据导出', icon:Download},

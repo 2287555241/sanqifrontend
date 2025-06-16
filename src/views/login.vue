@@ -147,8 +147,10 @@ import { ElMessage } from 'element-plus'
 import { useRouter } from 'vue-router'
 import '@/assets/css/login.css'
 import apiConfig from '@/config/api'
+import { useUserStore } from '../stores/users'
 
 const router = useRouter()
+const userStore = useUserStore()
 
 // 控制密码显示/隐藏
 const showPassword = ref(false)
@@ -227,9 +229,9 @@ const login = async () => {
     
     if (data.code === "0") {
       ElMessage.success(data.msg || '登录成功');
-      // 存储token和用户信息
-      sessionStorage.setItem('token', 'user-authenticated'); // 存储token
-      sessionStorage.setItem('userInfo', JSON.stringify(data.data));
+      // 使用 Pinia store 存储 token 和用户信息
+      userStore.setToken('user-authenticated');
+      userStore.setUserInfo(data.data);
       
       // 跳转到首页
       router.push('/main');
