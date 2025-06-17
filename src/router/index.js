@@ -95,24 +95,18 @@ const routes = [
   {
     path: '/tianditu',
     name: 'tianditu',
-    component: Index, // 使用主布局框架
+    component: MapView, // 直接使用MapView作为组件，不再嵌套在Index中
     meta: {
       requiresAuth: false // 不需要登录验证
+    }
     },
-    children: [
       {
-        path: '',
-        component: MapView
-      }
-    ]
-  },
-  {
     path: '/project-management',
     name: 'project-management',
     component: () => import(/* webpackChunkName: "project-management" */ '@/components/ProjectManagement.vue'),
     meta: {
       requiresAuth: true
-    }
+      }
   }
 ]
 

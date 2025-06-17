@@ -1,4 +1,13 @@
 <template>
+  <div class="map-page-container">
+    <!-- 总是显示顶部导航栏 -->
+    <indexHeader />
+    
+    <div class="main-content">
+      <!-- 总是显示左侧导航菜单 -->
+      <navMenu @openDataManagement="handleOpenDataManagement" />
+      
+      <!-- 地图容器 -->
   <div class="amap-container">
     <div v-if="loading" class="map-loading-container">
       <div class="map-loading-content">
@@ -19,15 +28,11 @@
 
     <div ref="mapContainer" class="map-content"></div>
 
-    <!-- 控制栏只在非纯地图模式下显示 -->
-    <div v-if="!isOnlyMapMode" class="map-controls-sidebar">
+        <!-- 控制栏只在非纯地图模式下显示 -->
+        <div v-if="!isOnlyMapMode" class="map-controls-sidebar">
       <div class="control-panel">
         <div class="control-panel-section">
           <div class="control-panel-title">地图模式</div>
-          <div class="control-panel-item">
-            <span>2D/3D切换</span>
-            <el-switch v-model="is3DMode" @change="toggle3DMode" />
-          </div>
           <div class="control-panel-item">
             <span>地图样式</span>
             <el-radio-group v-model="currentStyle" size="small" @change="changeMapStyle">
@@ -56,7 +61,7 @@
           </div>
           
           <div v-if="searchResults.length > 0" class="search-results">
-            <el-scrollbar height="200px">
+                <el-scrollbar>
               <div 
                 v-for="(item, index) in searchResults" 
                 :key="index" 
@@ -70,14 +75,41 @@
           </div>
         </div>
       </div>
+        </div>
+      </div>
+    </div>
+    
+    <!-- 数据管理对话框 -->
+    <div 
+      v-if="dataManagementDialogVisible"
+      class="data-management-dialog"
+      :style="{
+        position: 'fixed',
+        top: dialogPosition.y + 'px',
+        left: dialogPosition.x + 'px',
+        cursor: isDragDisabled ? 'default' : 'move'
+      }"
+      @mousedown="handleMouseDown"
+      @mousemove="handleMouseMove"
+      @mouseup="handleMouseUp"
+      @mouseleave="handleMouseUp"
+    >
+      <DataManagement 
+        @close="closeDataManagement" 
+        @disableDrag="setDragDisabled(true)"
+        @enableDrag="setDragDisabled(false)"
+      />
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, markRaw, computed, watch } from 'vue'
+import { ref, onMounted, onBeforeUnmount, markRaw, computed, watch, reactive } from 'vue'
 import { ElMessage } from 'element-plus'
 import { useRoute } from 'vue-router'
+import navMenu from './navMenu.vue'
+import indexHeader from './indexHeader.vue'
+import DataManagement from './DataManagement.vue'
 import { 
   Location, 
   Search, 
@@ -92,6 +124,7 @@ import {
 import axios from 'axios'
 import { useProjectStore } from '../stores/project'
 import { useUIStore } from '../stores/ui'
+import { emitter, Events } from '../utils/eventBus'
 // 不使用 AMap Loader，改为直接加载
 // import AMapLoader from '@amap/amap-jsapi-loader'
 
@@ -103,27 +136,96 @@ const shouldFocusYunnan = computed(() => route.query.yunnanView === 'true')
 // UI状态管理
 const uiStore = useUIStore()
 
-// 监听地图模式变化
-watch([isOnlyMapMode, shouldFocusYunnan], ([newMapMode, newFocusYunnan]) => {
-  if (map.value) {
-    if (newMapMode) {
-      // 切换到纯地图模式，清除三七区域显示
-      if (sanqiPolygons.value.length > 0) {
-        map.value.remove(sanqiPolygons.value);
-        sanqiPolygons.value = [];
-      }
-    } else {
-      // 切换到完整模式，加载三七区域
-      loadSanqiRegions();
-      initializeMapFeatures();
-    }
-    
-    // 如果需要聚焦到云南省，则调用focusOnYunnan方法
-    if (newFocusYunnan) {
-      focusOnYunnan();
-    }
+// 数据管理对话框状态
+const dataManagementDialogVisible = ref(false)
+const isDragDisabled = ref(false)
+const isDragging = ref(false)
+const dialogPosition = ref({ 
+  x: 250,
+  y: 10
+})
+const dragOffset = ref({ x: 0, y: 0 })
+
+// 处理打开数据管理
+const handleOpenDataManagement = () => {
+  dataManagementDialogVisible.value = true
+}
+
+// 关闭数据管理
+const closeDataManagement = () => {
+  dataManagementDialogVisible.value = false
+}
+
+// 设置拖动状态
+const setDragDisabled = (disabled) => {
+  isDragDisabled.value = disabled
+}
+
+// 拖动相关函数
+const handleMouseDown = (e) => {
+  if (e.target.closest('.el-table') || e.target.closest('.el-button')) {
+    return
   }
-});
+  
+  if (isDragDisabled.value) {
+    return
+  }
+
+  isDragging.value = true
+  dragOffset.value = {
+    x: e.clientX - dialogPosition.value.x,
+    y: e.clientY - dialogPosition.value.y
+  }
+}
+
+const handleMouseMove = (e) => {
+  if (!isDragging.value || isDragDisabled.value) return
+  
+  dialogPosition.value = {
+    x: e.clientX - dragOffset.value.x,
+    y: e.clientY - dragOffset.value.y
+  }
+}
+
+const handleMouseUp = () => {
+  isDragging.value = false
+}
+
+// 监听地图模式变化
+const setupMapModeWatch = () => {
+  watch(() => route.query.onlyMap, (newValue) => {
+    if (!map.value) return // 如果地图未初始化，直接返回
+    
+    if (newValue === 'true') {
+      // 清除所有覆盖物和图层
+      map.value.clearMap()
+      
+      // 重置地图样式
+      map.value.setMapStyle('amap://styles/dark')
+      
+      // 重置地图视图
+      map.value.setStatus({
+        viewMode: '2D',
+        jogEnable: true,
+        pitchEnable: true,
+        rotateEnable: true
+      })
+      
+      // 重置地图中心和缩放级别
+      map.value.setZoomAndCenter(8, [102.8, 25.04])
+      
+      // 清除已有的三七区域显示
+      if (sanqiPolygons.value && sanqiPolygons.value.length > 0) {
+        sanqiPolygons.value.forEach(polygon => {
+          if (map.value) {
+            map.value.remove(polygon)
+          }
+        })
+        sanqiPolygons.value = []
+      }
+    }
+  })
+}
 
 const icons = {
   location: markRaw(Location),
@@ -146,7 +248,6 @@ const loadingText = ref('正在加载地图...')
 const retryCount = ref(0)
 const maxRetries = 3
 const amapKey = 'c4dd3bd3ae4716656ae2798daebe1339'
-const is3DMode = ref(true)
 const currentStyle = ref('dark')
 const satellite = ref(null)
 const searchKeyword = ref('')
@@ -161,40 +262,102 @@ const rotation = ref(0)
 const projectStore = useProjectStore()
 const currentProject = computed(() => projectStore.getCurrentProject())
 
-onMounted(() => {
-  console.log('MapView组件已挂载');
-  initializeMap();
+let cleanupHandlers = []
+
+// 清理地图资源的函数
+const clearMap = () => {
+  console.log('清理地图资源')
+  
+  // 移除地图上的所有图层、标记等
+  if (map.value) {
+    // 清除所有覆盖物和控件
+    try {
+      map.value.clearMap()
+    } catch (e) {
+      console.error('清除地图时出错:', e)
+    }
+  }
+  
+  // 执行所有注册的清理处理函数
+  cleanupHandlers.forEach(handler => {
+    try {
+      handler()
+    } catch (e) {
+      console.error('执行清理处理函数时出错:', e)
+    }
+  })
+  
+  // 重置清理处理函数数组
+  cleanupHandlers = []
+}
+
+// 注册清理处理函数
+const registerCleanupHandler = (handler) => {
+  if (typeof handler === 'function') {
+    cleanupHandlers.push(handler)
+  }
+}
+
+// 监听 onlyMap 参数变化
+watch(isOnlyMapMode, async (newValue) => {
+  if (map.value) {
+    await loadSanqiRegions()
+  }
+})
+
+onMounted(async () => {
+  await initializeMap()
+  setupMapModeWatch() // 在地图初始化后设置监听
+  
+  // 监听清除地图事件
+  emitter.on(Events.CLEAR_MAP, clearMap)
+  
+  // 初始化cleanupHandlers数组
+  cleanupHandlers = []
 })
 
 onBeforeUnmount(() => {
-  // 清理地图实例
-  if (map.value) {
-    map.value.destroy();
-  }
+  // 移除事件监听
+  emitter.off(Events.CLEAR_MAP, clearMap)
   
-  // 清理事件监听
-  if (cleanupHandlers) {
-    cleanupHandlers();
-  }
+  // 组件卸载时清理地图资源
+  clearMap()
 })
 
 const initializeMap = async () => {
   try {
-    loading.value = true;
-    await initMap();
+    loading.value = true
+    loadingText.value = '正在加载地图...'
     
-    // 只在非纯地图模式下加载额外数据
-    if (!isOnlyMapMode.value) {
-      // 初始化完成后加载其他数据
-      await loadSanqiRegions();
-      await initializeMapFeatures();
-    } else {
-      // 纯地图模式下只加载基础地图
-      loading.value = false;
+    if (!window.AMap) {
+      throw new Error('地图API未加载')
     }
-  } catch (error) {
-    console.error('地图初始化失败:', error);
-    handleError(error);
+
+    map.value = new AMap.Map(mapContainer.value, {
+      zoom: 8,
+      center: [102.8, 25.04],
+      viewMode: '2D',
+      pitch: 0,
+      mapStyle: 'amap://styles/' + currentStyle.value,
+      features: ['bg', 'road', 'point', 'label']
+    })
+
+    // 设置地图完成后的状态
+    loading.value = false
+    apiLoaded.value = true
+
+    // 设置地图交互
+    setupMapInteraction()
+    
+    // 只在非纯地图模式下加载三七数据
+    if (!isOnlyMapMode.value) {
+      await loadSanqiRegions()
+    }
+    
+  } catch (err) {
+    console.error('初始化地图失败:', err)
+    error.value = '加载地图失败，请刷新页面重试'
+    loading.value = false
   }
 }
 
@@ -516,13 +679,19 @@ const focusOnYunnan = () => {
 // 加载三七种植区域数据
 const loadSanqiRegions = async () => {
   try {
+    loadingText.value = '正在加载区域数据...';
     console.log('开始加载三七种植区域数据');
-    loadingText.value = '正在加载三七种植区域数据...';
     
     // 清除旧的多边形
     if (sanqiPolygons.value.length > 0) {
       map.value.remove(sanqiPolygons.value);
       sanqiPolygons.value = [];
+    }
+    
+    // 在纯地图模式下不加载数据
+    if (isOnlyMapMode.value) {
+      console.log('纯地图模式，跳过加载三七区域数据');
+      return;
     }
     
     // 从后端API获取数据
@@ -681,7 +850,7 @@ const setupMapInteraction = () => {
     });
 
     mapContainer.addEventListener('mousemove', (e) => {
-      if (isRightMouseDown && is3DMode.value && map.value) {
+      if (isRightMouseDown && map.value) {
         const deltaX = e.clientX - lastX;
         const deltaY = e.clientY - lastY;
 
@@ -725,61 +894,6 @@ const setupMapInteraction = () => {
     console.log('地图交互设置完成');
   } catch (error) {
     console.error('设置地图交互失败:', error);
-  }
-}
-
-// 切换2D/3D模式
-const toggle3DMode = async (value) => {
-  if (!map.value) return;
-  
-  try {
-    console.log('切换视图模式:', value ? '3D' : '2D');
-    
-    // 保存当前中心点和缩放级别
-    const center = map.value.getCenter();
-    const zoom = map.value.getZoom();
-    
-    // 设置视图模式
-    map.value.setStatus({
-      viewMode: value ? '3D' : '2D',
-      jogEnable: value,
-      pitchEnable: value,
-      rotateEnable: value
-    });
-    
-    if (!value) {
-      // 切换到2D模式时，重置视角
-      map.value.setPitch(0);
-      map.value.setRotation(0);
-      map.value.setFeatures(['bg', 'road', 'point', 'label']);
-      // 移除3D建筑物图层
-      map.value.setLayers([new AMap.TileLayer()]);
-    } else {
-      // 切换到3D模式
-      map.value.setFeatures(['bg', 'road', 'point', 'building', 'label']);
-      map.value.setLayers([
-        new AMap.TileLayer(),
-        new AMap.Buildings({
-          zooms: [16, 20],
-          zIndex: 10
-        })
-      ]);
-    }
-    
-    // 恢复中心点和缩放级别
-    map.value.setCenter(center);
-    map.value.setZoom(zoom);
-    
-    // 更新界面上的控制值
-    pitch.value = map.value.getPitch() || 0;
-    rotation.value = map.value.getRotation() || 0;
-    
-    console.log('视图模式切换成功');
-  } catch (error) {
-    console.error('切换视图模式失败:', error);
-    ElMessage.error('切换视图模式失败，请重试');
-    // 恢复开关状态
-    is3DMode.value = !value;
   }
 }
 
@@ -1015,23 +1129,52 @@ const addDistrictLabel = (district, level) => {
     console.error('添加行政区标签失败:', error);
   }
 }
+
+// 导出清理和注册函数，供其他组件使用
+defineExpose({
+  clearMap,
+  registerCleanupHandler
+});
 </script>
 
 <style scoped>
-.amap-container {
+.map-page-container {
   width: 100%;
-  height: 100%;
-  min-height: calc(100vh - 30px);
-  background: #2c2c2c;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   position: relative;
 }
 
-.map-container {
+.main-content {
+  display: flex;
+  flex: 1;
+  height: calc(100vh - 30px); /* 调整为与头部导航栏高度一致 */
+  overflow: hidden;
+  position: relative;
+}
+
+.amap-container {
+  flex: 1;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+  display: flex;
+}
+
+.map-content {
   width: 100%;
   height: 100%;
-  min-height: calc(100vh - 30px);
-  position: relative;
-  z-index: 1;
+  background: #2c2c2c;
+}
+
+.left-sidebar {
+  width: 200px;
+  height: 100%;
+  background: rgba(44, 44, 44, 0.9);
+  z-index: 2;
+  padding-top: 30px;
 }
 
 /* 隐藏高德地图左下角logo和版权信息 */
@@ -1047,30 +1190,40 @@ const addDistrictLabel = (district, level) => {
 
 .map-controls-sidebar {
   position: absolute;
-  top: 0;
-  left: 0;
-  width: 300px;
-  height: 100%;
-  z-index: 100;
-  pointer-events: none; /* 允许地图点击穿透 */
+  top: 30px; /* 与头部导航栏高度一致 */
+  right: 0;
+  bottom: 0;
+  z-index: 90;
+  pointer-events: none; /* 防止拦截地图事件 */
+  transition: all 0.3s ease;
+  display: flex;
+  flex-direction: column;
+  width: 250px;
 }
 
 .control-panel {
-  width: 270px;
-  height: calc(100% - 40px);
-  margin: 20px;
-  background: rgba(40, 44, 52, 0.85);
-  border-radius: 8px;
-  box-shadow: 0 2px 12px rgba(0, 0, 0, 0.15);
+  width: 100%;
+  background-color: rgba(26, 26, 26, 0.9);
   color: #fff;
   pointer-events: auto; /* 恢复指针事件 */
   overflow-y: auto;
-  padding: 15px;
+  padding: 20px 15px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 20px;
+  border-radius: 0;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.3);
+}
+
+.control-panel-section:first-child {
+  padding-top: 0;
 }
 
 .control-panel-section {
-  margin-bottom: 20px;
-  padding-bottom: 20px;
+  margin-bottom: 0;
+  padding-bottom: 15px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
@@ -1078,88 +1231,149 @@ const addDistrictLabel = (district, level) => {
   border-bottom: none;
   margin-bottom: 0;
   padding-bottom: 0;
+  flex: 1; /* 让最后一个section占据剩余空间 */
+  display: flex;
+  flex-direction: column;
 }
 
 .control-panel-title {
   font-size: 16px;
   font-weight: 500;
-  margin-bottom: 10px;
+  margin-bottom: 15px;
   color: #fff;
+  padding-left: 0;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.control-panel-title::before {
+  content: '';
+  width: 3px;
+  height: 16px;
+  background: #409EFF;
+  border-radius: 2px;
+  display: inline-block;
 }
 
 .control-panel-item {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 10px;
-}
-
-.view-controls-container {
-  margin-top: 10px;
-}
-
-.view-controls-row {
-  display: flex;
-  justify-content: center;
-  gap: 8px;
-  margin-bottom: 10px;
-}
-
-.control-btn {
-  width: 40px;
-  height: 40px;
-  padding: 0;
-  border: none;
-  background: rgba(64, 158, 255, 0.1);
-  color: #409EFF;
-  transition: all 0.3s ease;
+  margin-bottom: 12px;
+  padding: 10px;
   border-radius: 4px;
+  transition: all 0.3s ease;
+  background: rgba(255, 255, 255, 0.03);
 }
 
-.control-btn:hover {
-  background: rgba(64, 158, 255, 0.2);
+.control-panel-item:hover {
+  background: rgba(255, 255, 255, 0.05);
 }
 
-.control-btn:active {
-  background: rgba(64, 158, 255, 0.3);
+.control-panel-item span {
+  font-size: 14px;
 }
 
-.reset-view {
+/* 自定义El-radio-group样式 */
+.control-panel-item :deep(.el-radio-group) {
   display: flex;
-  justify-content: center;
+  justify-content: flex-end;
+  gap: 4px;
 }
 
-.reset-btn {
-  width: auto;
-  padding: 0 15px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 5px;
+.control-panel-item :deep(.el-radio-button__inner) {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 6px 12px;
+  font-size: 12px;
+  height: 32px;
+  line-height: 20px;
+  transition: all 0.3s ease;
+}
+
+.control-panel-item :deep(.el-radio-button__inner:hover) {
+  background-color: rgba(255, 255, 255, 0.15);
+}
+
+.control-panel-item :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  background-color: #409EFF;
+  border-color: #409EFF;
+  box-shadow: -1px 0 0 0 #409EFF;
+}
+
+/* 自定义El-switch样式 */
+.control-panel-item :deep(.el-switch__core) {
+  background-color: rgba(255, 255, 255, 0.2);
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.control-panel-item :deep(.el-switch.is-checked .el-switch__core) {
+  background-color: #409EFF;
+  border-color: #409EFF;
 }
 
 .search-box {
-  margin-bottom: 10px;
+  margin-bottom: 12px;
+  width: 100%;
+  flex: 0;
 }
 
 .search-input {
   width: 100%;
 }
 
+.search-input :deep(.el-input__wrapper) {
+  background-color: rgba(255, 255, 255, 0.1);
+  box-shadow: none;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+
+.search-input :deep(.el-input__wrapper:hover) {
+  border-color: rgba(255, 255, 255, 0.3);
+}
+
+.search-input :deep(.el-input__wrapper.is-focus) {
+  border-color: #409EFF;
+  box-shadow: 0 0 0 1px #409EFF;
+}
+
+.search-input :deep(.el-input__inner) {
+  color: #fff;
+  height: 36px;
+}
+
+.search-input :deep(.el-input__inner::placeholder) {
+  color: rgba(255, 255, 255, 0.5);
+}
+
 .search-btn {
   border: none;
   background: transparent;
   color: #409EFF;
+  padding: 0 8px;
+  transition: all 0.3s ease;
+}
+
+.search-btn:hover {
+  color: #79bbff;
 }
 
 .search-results {
-  background: rgba(255, 255, 255, 0.05);
-  border-radius: 4px;
+  background: rgba(40, 44, 52, 0.95);
+  border-radius: 0;
   margin-top: 10px;
+  border: none;
+  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  max-height: none;
+  flex: 1;
+  overflow: auto;
 }
 
 .search-result-item {
-  padding: 10px;
+  padding: 12px;
   border-bottom: 1px solid rgba(255, 255, 255, 0.05);
   cursor: pointer;
   transition: background 0.3s;
@@ -1175,12 +1389,14 @@ const addDistrictLabel = (district, level) => {
 
 .result-name {
   font-weight: 500;
-  margin-bottom: 3px;
+  margin-bottom: 4px;
+  color: #fff;
 }
 
 .result-address {
   font-size: 12px;
-  color: #ccc;
+  color: rgba(255, 255, 255, 0.7);
+  line-height: 1.4;
 }
 
 .map-loading-container {
@@ -1251,5 +1467,56 @@ const addDistrictLabel = (district, level) => {
   color: #ffffff;
   font-size: 14px;
   margin-bottom: 20px;
+}
+
+.data-management-dialog {
+  position: fixed;
+  top: 10px;
+  left: 250px;
+  cursor: move;
+}
+
+/* 自定义El-radio-group样式 */
+.control-panel-item :deep(.el-radio-group) {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.control-panel-item :deep(.el-radio-button) {
+  margin-right: 0;
+}
+
+.control-panel-item :deep(.el-radio-button__inner) {
+  background-color: rgba(255, 255, 255, 0.1);
+  border-color: rgba(255, 255, 255, 0.2);
+  color: #fff;
+  padding: 5px 10px;
+  font-size: 12px;
+}
+
+.control-panel-item :deep(.el-radio-button__original-radio:checked + .el-radio-button__inner) {
+  background-color: #409EFF;
+  border-color: #409EFF;
+  box-shadow: -1px 0 0 0 #409EFF;
+}
+
+/* 自定义El-switch样式 */
+.control-panel-item :deep(.el-switch__core) {
+  background-color: rgba(255, 255, 255, 0.2);
+}
+
+/* 修复地图上的信息窗口样式 */
+:deep(.amap-info-content) {
+  color: #333;
+}
+
+:deep(.amap-info-close) {
+  background-color: rgba(255, 255, 255, 0.8);
+  border-radius: 50%;
+}
+
+/* 调整滚动条 */
+:deep(.el-scrollbar__wrap) {
+  overflow-x: hidden;
 }
 </style> 

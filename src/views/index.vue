@@ -4,15 +4,7 @@
     <indexHeader @showProjectManagement="handleShowProjectManagement" />
     <div class="content-container">
       <el-container style="background: transparent; box-shadow: none;">
-        <el-aside width="200px" style="background: transparent; box-shadow: none; margin-top: 30px;">
-          <navMenu 
-            @openDataManagement="handleOpenDataManagement" 
-            :dataManagementVisible="dataManagementDialogVisible"
-          />
-        </el-aside>
-        <el-container>
-          <el-main style="background: transparent; padding: 0; margin-top: 30px;"></el-main>
-        </el-container>
+        <!-- 移除左侧菜单栏 -->
       </el-container>
     </div>
     <div 
@@ -55,10 +47,11 @@
 import navMenu from './navMenu.vue';
 import indexHeader from './indexHeader.vue';
 import navMain from './navMain.vue';
-import { ref, onMounted, watch } from 'vue';
+import { ref, onMounted, watch, onBeforeUnmount } from 'vue';
 import { useRoute } from 'vue-router';
 import DataManagement from './DataManagement.vue';
 import ProjectManagement from '../components/ProjectManagement.vue';
+import { emitter, activeView, Events } from '../utils/eventBus';
 
 const route = useRoute();
 
@@ -119,6 +112,18 @@ const setProjectDragDisabled = (disabled) => {
   isProjectDragDisabled.value = disabled;
 };
 
+// 处理事件监听
+onMounted(() => {
+  // 设置活动视图为home，确保显示欢迎页面和新建项目按钮
+  activeView.value = 'home';
+  
+  emitter.on('show-project-management', handleShowProjectManagement);
+});
+
+onBeforeUnmount(() => {
+  emitter.off('show-project-management', handleShowProjectManagement);
+});
+
 const handleMouseDown = (e) => {
   if (e.target.closest('.el-table') || e.target.closest('.el-button')) {
     return;
@@ -138,25 +143,6 @@ const handleMouseDown = (e) => {
   document.addEventListener('mouseup', handleGlobalMouseUp);
 };
 
-const handleProjectMouseDown = (e) => {
-  if (e.target.closest('.el-table') || e.target.closest('.el-button')) {
-    return;
-  }
-  
-  if (isProjectDragDisabled.value) {
-    return;
-  }
-
-  isDragging.value = true;
-  projectDragOffset.value = {
-    x: e.clientX - projectDialogPosition.value.x,
-    y: e.clientY - projectDialogPosition.value.y
-  };
-
-  document.addEventListener('mousemove', handleProjectGlobalMouseMove);
-  document.addEventListener('mouseup', handleProjectGlobalMouseUp);
-};
-
 const handleMouseMove = (e) => {
   if (!isDragging.value || isDragDisabled.value) return;
   
@@ -166,28 +152,11 @@ const handleMouseMove = (e) => {
   };
 };
 
-const handleProjectMouseMove = (e) => {
-  if (!isDragging.value || isProjectDragDisabled.value) return;
-  
-  projectDialogPosition.value = {
-    x: e.clientX - projectDragOffset.value.x,
-    y: e.clientY - projectDragOffset.value.y
-  };
-};
-
 const handleMouseUp = () => {
   if (isDragging.value) {
     isDragging.value = false;
     document.removeEventListener('mousemove', handleGlobalMouseMove);
     document.removeEventListener('mouseup', handleGlobalMouseUp);
-  }
-};
-
-const handleProjectMouseUp = () => {
-  if (isDragging.value) {
-    isDragging.value = false;
-    document.removeEventListener('mousemove', handleProjectGlobalMouseMove);
-    document.removeEventListener('mouseup', handleProjectGlobalMouseUp);
   }
 };
 
@@ -200,28 +169,11 @@ const handleGlobalMouseMove = (e) => {
   };
 };
 
-const handleProjectGlobalMouseMove = (e) => {
-  if (!isDragging.value || isProjectDragDisabled.value) return;
-  
-  projectDialogPosition.value = {
-    x: e.clientX - projectDragOffset.value.x,
-    y: e.clientY - projectDragOffset.value.y
-  };
-};
-
 const handleGlobalMouseUp = () => {
   if (isDragging.value) {
     isDragging.value = false;
     document.removeEventListener('mousemove', handleGlobalMouseMove);
     document.removeEventListener('mouseup', handleGlobalMouseUp);
-  }
-};
-
-const handleProjectGlobalMouseUp = () => {
-  if (isDragging.value) {
-    isDragging.value = false;
-    document.removeEventListener('mousemove', handleProjectGlobalMouseMove);
-    document.removeEventListener('mouseup', handleProjectGlobalMouseUp);
   }
 };
 </script>

@@ -119,8 +119,8 @@
 </template>
 
 <script setup>
-import { ref, defineEmits, defineProps } from 'vue'
-import { useRouter } from 'vue-router'
+import { ref, defineEmits, defineProps, onMounted, watch } from 'vue'
+import { useRouter, useRoute } from 'vue-router'
 import DraggableDialog from '../components/DraggableDialog.vue'
 import {
   Picture,
@@ -132,6 +132,7 @@ import {
   Upload
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
+import { emitter, activeView, Events } from '../utils/eventBus'
 
 const props = defineProps({
   dataManagementVisible: {
@@ -141,6 +142,8 @@ const props = defineProps({
 })
 
 const router = useRouter()
+const route = useRoute()
+const activeIndex = ref('') // 初始不选中任何项
 const dialogStates = ref({
   1: { visible: false, title: '数据查询' },
   2: { visible: false, title: '数据分析区' },
@@ -150,22 +153,83 @@ const dialogStates = ref({
 })
 
 let asidelist = ref([
-   {id:1, title:'数据查询', icon:Picture, route: '/tianditu'},
-   {id:2, title:'数据分析区', icon:Crop},
-   {id:3, title:'产量估算', icon:DataAnalysis},
-   {id:4, title:'耕地数据叠加与分析', icon:Histogram},
-   {id:5, title:'数据导出', icon:Download},
-   {id:6, title:'数据管理', icon:DataBoard, route: '/data-management'} // 数据管理菜单项
+   {id:1, title:'数据查询', icon:Picture, route: '/tianditu', view: 'map'},
+   {id:2, title:'数据分析区', icon:Crop, view: 'analysis'},
+   {id:3, title:'产量估算', icon:DataAnalysis, view: 'yield'},
+   {id:4, title:'耕地数据叠加与分析', icon:Histogram, view: 'overlay'},
+   {id:5, title:'数据导出', icon:Download, view: 'export'},
+   {id:6, title:'数据管理', icon:DataBoard, route: '/data-management', view: 'data-management'} // 数据管理菜单项
 ])
 
+// 在组件挂载时根据当前路由和视图状态设置选中项
+onMounted(() => {
+  updateActiveIndex()
+  
+  // 监听路由变化
+  watch(() => route.path, () => {
+    updateActiveIndex()
+  })
+  
+  // 监听activeView变化
+  watch(() => activeView.value, () => {
+    updateActiveIndex()
+  })
+})
+
+// 更新选中的菜单项
+const updateActiveIndex = () => {
+  // 如果是地图页面，检查是否有projectId
+  if (route.path === '/tianditu') {
+    // 如果从项目创建页面跳转过来，不选中任何菜单项
+    if (route.query.projectId) {
+      activeIndex.value = ''
+    } else {
+      // 否则选中数据查询
+      activeIndex.value = '1'
+    }
+  } else {
+    // 根据当前activeView设置选中项
+    const activeItem = asidelist.value.find(item => item.view === activeView.value)
+    if (activeItem) {
+      activeIndex.value = activeItem.id.toString()
+    }
+  }
+}
+
 const handleMenuItemClick = (item) => {
+  // 更新当前活动视图
+  activeView.value = item.view
+  activeIndex.value = item.id.toString()
+  
+  // 发送事件通知内容区域刷新
+  emitter.emit(Events.REFRESH_CONTENT, { view: item.view, id: item.id })
+  
+  // 如果是地图相关视图，发送清除地图事件
+  if (item.view !== 'map' && activeView.value === 'map') {
+    emitter.emit(Events.CLEAR_MAP)
+  }
+  
   if (item.id === 6) {
     // 数据管理按钮，触发事件给父组件
-    // emit 事件
     emit('openDataManagement')
   } else if (item.route) {
     // 如果有route属性，则进行路由跳转
-    router.push(item.route)
+    if (item.id === 1) { // 数据查询按钮
+      // 构建查询参数对象
+      const query = { onlyMap: 'false' }
+      
+      // 如果有projectId参数，保留它
+      if (route.query.projectId) {
+        query.projectId = route.query.projectId
+      }
+      
+      router.push({
+        path: item.route,
+        query: query
+      })
+    } else {
+      router.push(item.route)
+    }
   } else if (dialogStates.value[item.id]) {
     // 否则打开对应的对话框
     dialogStates.value[item.id].visible = true

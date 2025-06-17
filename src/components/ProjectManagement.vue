@@ -294,14 +294,18 @@ const handleCreate = () => {
   // 关闭对话框
   closeDialog()
   
-  // 跳转到纯地图页面，添加yunnanView参数表示需要聚焦到云南省
+  console.log('跳转到地图页面，项目ID:', projectInfo.id)
+  
+  // 跳转到地图页面
   router.push({ 
     path: '/tianditu',
     query: { 
-      onlyMap: 'true',
       projectId: projectInfo.id,
-      yunnanView: 'true'
+      onlyMap: 'true' // 设置为纯地图模式，不显示三七数据
     }
+  }).catch(err => {
+    console.error('导航错误:', err)
+    ElMessage.error('导航到地图页面失败，请重试')
   })
   
   ElMessage.success('项目创建成功')

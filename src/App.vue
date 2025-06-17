@@ -1,7 +1,7 @@
 <template>
   <div class="app-container">
     <router-view/>
-    <div v-if="currentProject" class="project-name-footer">
+    <div v-if="shouldShowProjectName" class="project-name-footer">
       <span class="project-name-label">项目：</span>
       {{ currentProject.name }}
     </div>
@@ -11,9 +11,19 @@
 <script setup>
 import { computed } from 'vue'
 import { useProjectStore } from './stores/project'
+import { useRoute } from 'vue-router'
 
 const projectStore = useProjectStore()
 const currentProject = computed(() => projectStore.getCurrentProject())
+const route = useRoute()
+
+// 只有在有项目且是从创建项目后的情况下才显示项目名称
+const shouldShowProjectName = computed(() => {
+  // 当前有项目，并且满足以下条件之一：
+  // 1. 路由参数中有projectId（从创建项目跳转）
+  // 2. 路由参数中有onlyMap=false（点击数据搜索按钮）
+  return currentProject.value && (route.query.projectId || route.query.onlyMap === 'false');
+})
 </script>
 
 <style>
