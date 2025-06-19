@@ -1,17 +1,15 @@
 <template>
   <div v-if="visible" class="data-management-dialog-container">
-    <div class="dialog-header">
-      <div class="dialog-title">数据管理</div>
-      <el-icon class="close-icon" @click="$emit('close')"><Close /></el-icon>
-    </div>
-    
     <div class="dialog-content">
+      <div class="close-button" @click="handleClose">
+        <el-icon><Close /></el-icon>
+      </div>
+      
       <el-tabs v-model="activeTab" type="border-card" class="full-height-tabs">
         <el-tab-pane label="系统数据" name="system">
           <el-table
             :data="[]"
             style="width: 100%"
-            border
             stripe
             height="450px"
             table-layout="auto"
@@ -44,7 +42,6 @@
           <el-table
             :data="userData"
             style="width: 100%"
-            border
             stripe
             height="450px"
             table-layout="auto" 
@@ -648,6 +645,10 @@ const batchDelete = () => {
     // 取消删除
   })
 }
+
+const handleClose = () => {
+  emit('close')
+}
 </script>
 
 <style scoped>
@@ -666,32 +667,8 @@ const batchDelete = () => {
   flex-direction: column;
   color: #fff;
   padding: 0;
-}
-
-.dialog-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 18px 20px 10px 20px;
-  background-color: #232323;
-  border-bottom: 1px solid #333;
-}
-
-.dialog-title {
-  font-size: 16px;
-  font-weight: 500;
-  color: #fff;
-}
-
-.close-icon {
-  font-size: 20px;
-  color: #b8b8b8;
-  cursor: pointer;
-  transition: all 0.3s;
-}
-.close-icon:hover {
-  color: #f56c6c;
-  transform: scale(1.2);
+  border: none !important;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.5);
 }
 
 .dialog-content {
@@ -706,18 +683,36 @@ const batchDelete = () => {
 .full-height-tabs {
   height: 100%;
   width: 100%;
+  background: #232323;
 }
 
-:deep(.el-tabs__content) {
-  height: calc(100% - 40px);
-  min-height: 400px;
-  overflow: visible;
-  width: 100%;
+:deep(.el-tabs__header) {
+  background: #232323 !important;
+  border-bottom: 1px solid #333 !important;
+}
+:deep(.el-tabs__nav) {
+  background: #232323 !important;
+}
+:deep(.el-tabs__item) {
+  color: #b8b8b8 !important;
+  background: #232323 !important;
+  border: none !important;
+}
+:deep(.el-tabs__item.is-active) {
+  color: #409EFF !important;
+  background: #232323 !important;
+  border-bottom: 2px solid #409EFF !important;
 }
 
-:deep(.el-tab-pane) {
-  height: auto;
-  width: 100%;
+:deep(.el-tabs__content),
+:deep(.el-tab-pane),
+:deep(.el-tabs__content > *),
+:deep(.el-tab-pane > *),
+:deep(.dialog-content > *) {
+  border: none !important;
+  background: #1a1a1a !important;
+  box-shadow: none !important;
+  padding: 0 !important;
 }
 
 .table-footer {
@@ -734,41 +729,14 @@ const batchDelete = () => {
   gap: 10px;
 }
 
-:deep(.el-table__body-wrapper) {
-  overflow-y: auto;
-  height: calc(100% - 40px);
-}
-
-:deep(.el-table__row) {
-  height: 50px;
-}
-
+:deep(.el-table),
+:deep(.el-table__header-wrapper),
+:deep(.el-table__body-wrapper),
+:deep(.el-table__empty-block),
+:deep(.el-table__cell),
+:deep(.el-table__row),
 :deep(.el-table__header) th {
-  padding: 12px 0;
-  font-weight: bold;
-  background: #232323;
-  color: #fff;
-}
-
-:deep(.el-table) {
-  width: 100% !important;
-  background: #1a1a1a;
-  color: #fff;
-}
-
-:deep(.el-table__cell) {
-  text-align: center;
-  padding: 8px 0;
-  background: #1a1a1a;
-  color: #fff;
-}
-
-:deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
-  background-color: #232323;
-}
-
-:deep(.el-table__header-wrapper) {
-  width: 100%;
+  background: #232323 !important;
 }
 
 .empty-data-container {
@@ -783,6 +751,30 @@ const batchDelete = () => {
   color: #f56c6c;
   margin-top: 10px;
   margin-bottom: 20px;
+}
+
+:deep(.el-button) {
+  min-width: 90px;
+  font-size: 15px;
+  border-radius: 6px;
+  background: #232323 !important;
+  color: #fff !important;
+  border: 1px solid #409EFF !important;
+  transition: all 0.2s;
+}
+:deep(.el-button--primary) {
+  background: #409EFF !important;
+  border-color: #409EFF !important;
+  color: #fff !important;
+}
+:deep(.el-button--primary:hover) {
+  background: #66b1ff !important;
+  border-color: #66b1ff !important;
+}
+:deep(.el-button--danger) {
+  background: #f56c6c !important;
+  border-color: #f56c6c !important;
+  color: #fff !important;
 }
 
 /* 栅格数据导入样式 */
@@ -960,5 +952,62 @@ const batchDelete = () => {
 :deep(.el-button--danger) {
   background: #f56c6c;
   border-color: #f56c6c;
+}
+
+:deep(.el-table),
+:deep(.el-table__header-wrapper),
+:deep(.el-table__body-wrapper),
+:deep(.el-table__cell),
+:deep(.el-table__row),
+:deep(.el-table__inner-wrapper),
+:deep(.el-table__border),
+:deep(.el-table__outer-wrapper) {
+  border: none !important;
+  box-shadow: none !important;
+}
+:deep(.el-table__header) th {
+  border-bottom: 2px solid #333 !important;
+}
+:deep(.el-table__cell) {
+  border-bottom: 1px solid #232323 !important;
+}
+:deep(.el-table__row:last-child .el-table__cell) {
+  border-bottom: none !important;
+}
+/* 可选：列分隔线（如不需要可注释掉） */
+/*
+:deep(.el-table__cell:not(:last-child)) {
+  border-right: 1px solid #232323 !important;
+}
+*/
+:deep(.el-table__empty-block) {
+  border-top: 1px solid #232323 !important;
+}
+
+/* 添加关闭按钮样式 */
+.close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  width: 30px;
+  height: 30px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  z-index: 10;
+  background-color: #232323;
+  border-radius: 50%;
+  color: #fff;
+  transition: all 0.3s;
+}
+
+.close-button:hover {
+  background-color: #f56c6c;
+  transform: rotate(90deg);
+}
+
+.close-button .el-icon {
+  font-size: 18px;
 }
 </style>

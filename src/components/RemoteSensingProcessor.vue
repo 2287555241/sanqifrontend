@@ -305,6 +305,8 @@ const closeDialog = () => {
   height: 100%;
   padding: 15px;
   overflow-y: auto;
+  background-color: #1a1a1a;
+  color: #e6e6e6;
 }
 
 .processor-content {
@@ -313,17 +315,40 @@ const closeDialog = () => {
   gap: 15px;
 }
 
+.processor-content h3 {
+  color: #ffffff;
+  margin-bottom: 10px;
+}
+
+.processor-content h4 {
+  color: #ffffff;
+  margin-bottom: 8px;
+}
+
+.processor-content p {
+  color: #b8b8b8;
+  margin-bottom: 8px;
+}
+
 .processor-options {
   margin-bottom: 15px;
 }
 
 .divider {
-  border-top: 1px solid #eaeaea;
+  border-top: 1px solid #333333;
   margin: 15px 0;
 }
 
 .file-upload {
   margin-bottom: 10px;
+}
+
+.file-upload input[type="file"] {
+  background-color: #232323;
+  color: #e6e6e6;
+  border: 1px solid #444444;
+  padding: 5px;
+  border-radius: 4px;
 }
 
 .option-group {
@@ -334,12 +359,14 @@ const closeDialog = () => {
   display: block;
   margin-bottom: 5px;
   font-weight: 500;
+  color: #b8b8b8;
 }
 
 .range-inputs {
   display: flex;
   align-items: center;
   gap: 10px;
+  color: #e6e6e6;
 }
 
 .actions {
@@ -353,14 +380,27 @@ const closeDialog = () => {
   margin-top: 20px;
   padding: 10px;
   border-radius: 4px;
-  background-color: #f0f9eb;
+  background-color: #232323;
+  border: 1px solid #333333;
+  color: #e6e6e6;
 }
 
 .result-info {
   margin-top: 20px;
   padding: 15px;
   border-radius: 4px;
-  background-color: #f5f7fa;
+  background-color: #232323;
+  border: 1px solid #333333;
+  color: #e6e6e6;
+}
+
+.result-info h4 {
+  color: #ffffff;
+  margin-bottom: 10px;
+}
+
+.result-info p {
+  color: #b8b8b8;
 }
 
 .result-actions {
@@ -372,6 +412,47 @@ const closeDialog = () => {
 .processing-options {
   padding: 15px;
   border-radius: 4px;
-  background-color: #f5f7fa;
+  background-color: #232323;
+  border: 1px solid #333333;
+  color: #e6e6e6;
+}
+
+:deep(.el-radio) {
+  color: #b8b8b8;
+  margin-right: 20px;
+}
+
+:deep(.el-radio__input.is-checked + .el-radio__label) {
+  color: #409EFF;
+}
+
+:deep(.el-select .el-input__wrapper) {
+  background-color: #2c2c2c;
+  box-shadow: 0 0 0 1px #444444 inset;
+}
+
+:deep(.el-select .el-input__inner) {
+  color: #e6e6e6;
+}
+
+:deep(.el-input-number .el-input__wrapper) {
+  background-color: #2c2c2c;
+  box-shadow: 0 0 0 1px #444444 inset;
+}
+
+:deep(.el-input-number .el-input__inner) {
+  color: #e6e6e6;
+}
+
+:deep(.el-button) {
+  border-radius: 4px;
+}
+
+:deep(.el-progress-bar__outer) {
+  background-color: #333333;
+}
+
+:deep(.el-progress-bar__inner) {
+  background-color: #409EFF;
 }
 </style> 

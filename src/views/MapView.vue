@@ -37,6 +37,11 @@
           <div class="sidebar-content">
             <!-- 数据查询面板内容 -->
             <div class="control-panel">
+              <div class="control-panel-header">
+                <div class="close-button" @click="closeRightPanel">
+                  <el-icon><Close /></el-icon>
+                </div>
+              </div>
               <div class="control-panel-section">
                 <div class="control-panel-title">地图模式</div>
                 <div class="map-style-selector">
@@ -230,20 +235,7 @@
             </div>
           </div>
           
-          <!-- 右侧竖排标签区域 -->
-          <div class="sidebar-tabs-wrapper" v-if="showSidebarContent">
-            <div class="sidebar-tabs-vertical">
-              <div 
-                class="sidebar-tab-vertical active"
-                @click="closeRightPanel"
-              >
-                <el-icon class="tab-icon-vertical">
-                  <component :is="'Close'" />
-                </el-icon>
-                <span class="tab-text-vertical">{{ sidebarTabs[0].title }}</span>
-              </div>
-            </div>
-          </div>
+          <!-- 右侧竖排标签区域已删除 -->
         </div>
       </div>
     </div>
@@ -470,6 +462,29 @@ onMounted(async () => {
     emitter.off(Events.CLEAR_MAP, clearMap)
   }
   registerCleanupHandler(clearEventListener)
+
+  // 检查是否从项目创建页面跳转过来
+  if (route.query.projectId) {
+    console.log('检测到从项目创建页面跳转，设置视角到云南省')
+    // 确保地图已初始化
+    if (map.value) {
+      // 立即设置视角
+      focusOnYunnan()
+    } else {
+      // 如果地图尚未初始化，等待初始化完成后设置视角
+      const checkMapInterval = setInterval(() => {
+        if (map.value) {
+          focusOnYunnan()
+          clearInterval(checkMapInterval)
+        }
+      }, 500)
+      
+      // 设置超时，避免无限等待
+      setTimeout(() => {
+        clearInterval(checkMapInterval)
+      }, 10000)
+    }
+  }
 })
 
 onBeforeUnmount(() => {
@@ -878,27 +893,40 @@ const initMap = async () => {
   }
 }
 
-// 设置地图视野到云南省
+// 设置地图视野到云南省 - 增强版
 const focusOnYunnan = () => {
   try {
+    console.log('设置地图视野到云南省')
+    
+    // 确保地图实例存在
+    if (!map.value) {
+      console.warn('地图实例不存在，无法设置视角')
+      return
+    }
+    
     // 云南省的大致边界范围
     const yunnanBounds = new AMap.Bounds(
       [97.31833, 21.14163],  // 西南角
       [106.19016, 29.22041]  // 东北角
-    );
+    )
     
     // 调整视野范围
-    map.value.setBounds(yunnanBounds);
+    map.value.setBounds(yunnanBounds)
     
-    // 设置俯视角度为0，确保地图不倾斜
-    map.value.setPitch(0);
-    
-    // 设置旋转角度为0，确保地图不旋转
-    map.value.setRotation(0);
-    
-    console.log('地图视野已设置到云南省，并已复原俯仰和旋转');
+    // 设置适当的缩放级别，以便更好地查看整个云南省
+    setTimeout(() => {
+      map.value.setZoom(7.5)
+      
+      // 设置俯视角度为0，确保地图不倾斜
+      map.value.setPitch(0)
+      
+      // 设置旋转角度为0，确保地图不旋转
+      map.value.setRotation(0)
+      
+      console.log('地图视野已设置到云南省，并已复原俯仰和旋转')
+    }, 100)
   } catch (error) {
-    console.error('设置地图视野到云南省失败:', error);
+    console.error('设置地图视野到云南省失败:', error)
   }
 }
 
@@ -2094,7 +2122,7 @@ const openRightPanel = () => {
 }
 
 .sidebar-content {
-  width: calc(100% - 50px); /* 减去标签区域的宽度 */
+  width: 100%; /* 修改为100%，占据整个侧边栏宽度 */
   height: 100%;
   position: relative;
 }
@@ -2123,13 +2151,44 @@ const openRightPanel = () => {
   color: #fff;
   pointer-events: auto;
   overflow-y: auto;
-  padding: 20px 15px;
+  padding: 0 15px 20px; /* 移除顶部内边距，为顶部标题栏腾出空间 */
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
   gap: 15px;
   box-shadow: -2px 0 10px rgba(0, 0, 0, 0.5);
   box-sizing: border-box;
+}
+
+.control-panel-header {
+  display: flex;
+  justify-content: flex-end;
+  padding: 10px 0;
+  position: sticky;
+  top: 0;
+  background-color: #1a1a1a;
+  z-index: 99;
+}
+
+.close-button {
+  cursor: pointer;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  background-color: #232323;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.3s;
+}
+
+.close-button:hover {
+  background-color: #f56c6c;
+  color: white;
+}
+
+.close-button .el-icon {
+  font-size: 16px;
 }
 
 .control-panel-section:first-child {

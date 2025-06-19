@@ -112,8 +112,7 @@ let asidelist = ref([
    {id:5, title:'数据导出', icon:Download},
    {id:6, title:'数据管理', icon:DataBoard},
    {id:7, title:'地图测试', icon:Connection, externalLink: 'http://localhost:9191/webapp/CombinedMap.html'},
-   {id:8, title:'GSF服务', icon:Share},
-   {id:9, title:'栅格矢量数据管理', icon:Management, route: '/data-management'}
+   {id:8, title:'GSF服务', icon:Share}
 ])
 
 // 在组件挂载时根据当前路由和视图状态设置选中项
@@ -178,11 +177,6 @@ const handleMenuItemClick = (item) => {
   } else if (item.id === 8) {
     // GSF服务按钮
     showGSFServiceDialog.value = true
-  } else if (item.id === 9) {
-    // 栅格矢量数据管理按钮，直接使用路由导航
-    if (item.route) {
-      router.push(item.route)
-    }
   } else if (item.route) {
     // 如果有route属性，则进行路由跳转
     if (item.id === 1) { // 数据查询按钮

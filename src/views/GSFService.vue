@@ -49,13 +49,6 @@
           <el-form-item label="输入栅格 (JSON):">
             <el-input v-model="subsetInputRaster"></el-input>
           </el-form-item>
-          <el-form-item label="输入参数 (JSON):">
-            <el-input 
-              type="textarea" 
-              v-model="subsetInputParameters" 
-              :rows="9"
-            ></el-input>
-          </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="submitTask('subset')">提交</el-button>
           </el-form-item>
@@ -79,13 +72,6 @@
           </el-form-item>
           <el-form-item label="输入栅格 (JSON):">
             <el-input v-model="spectralInputRaster"></el-input>
-          </el-form-item>
-          <el-form-item label="输入参数 (JSON):">
-            <el-input 
-              type="textarea" 
-              v-model="spectralInputParameters" 
-              :rows="9"
-            ></el-input>
           </el-form-item>
           <el-form-item>
             <el-button type="primary" @click="submitTask('spectral')">提交</el-button>
@@ -267,24 +253,9 @@ const processingError = ref(false);
 // 表单数据
 const subsetTask = ref('SubsetRaster');
 const subsetInputRaster = ref('http://localhost:9191/ese/data/LC81290442018060LGN00/LC08_L1TP_129044_20180301_20180308_01_T1_MTL.txt');
-const subsetInputParameters = ref(`{
-  "INPUT_RASTER": {
-    "FACTORY": "URLRaster",
-    "URL":"%INPUT_RASTER%",
-    "DATASET_INDEX": 0
-  },
-  "BANDS": [1,2,3]
-}`);
 
 const spectralTask = ref('SpectralIndex');
 const spectralInputRaster = ref('http://localhost:9191/ese/data/qb_boulder_msi');
-const spectralInputParameters = ref(`{
-  "INPUT_RASTER": {
-    "FACTORY": "URLRaster",
-    "URL":"%INPUT_RASTER%"
-  },
-  "INDEX": "Normalized Difference Vegetation Index"
-}`);
 
 // 文件上传相关
 const uploadRef = ref(null);
@@ -700,11 +671,26 @@ const submitTask = async (taskType) => {
     if (taskType === 'subset') {
       rasterURL = subsetInputRaster.value;
       processingTaskName = subsetTask.value;
-      inputParams = subsetInputParameters.value;
+      // 为栅格子集任务提供默认参数
+      inputParams = JSON.stringify({
+        "INPUT_RASTER": {
+          "FACTORY": "URLRaster",
+          "URL":"%INPUT_RASTER%",
+          "DATASET_INDEX": 0
+        },
+        "BANDS": [1,2,3]
+      });
     } else if (taskType === 'spectral') {
       rasterURL = spectralInputRaster.value;
       processingTaskName = spectralTask.value;
-      inputParams = spectralInputParameters.value;
+      // 为光谱指数任务提供默认参数
+      inputParams = JSON.stringify({
+        "INPUT_RASTER": {
+          "FACTORY": "URLRaster",
+          "URL":"%INPUT_RASTER%"
+        },
+        "INDEX": "Normalized Difference Vegetation Index"
+      });
     } else if (taskType === 'upload') {
       rasterURL = selectedFile.value;
       processingTaskName = processTask.value;
@@ -877,87 +863,269 @@ const submitTask = async (taskType) => {
 
 <style scoped>
 .gsf-service-container {
-  display: flex;
-  flex-direction: column;
+  padding: 20px;
+  background-color: #1a1a1a;
+  color: #e6e6e6;
   height: 100%;
-  padding: 10px;
   overflow-y: auto;
+  border-radius: 0 0 8px 8px; /* 保持与窗口底部圆角一致 */
 }
 
 .task-buttons {
-  margin-bottom: 20px;
   display: flex;
-  gap: 10px;
+  justify-content: center;
+  gap: 15px;
+  margin-bottom: 20px;
+  padding-bottom: 15px;
+  border-bottom: 1px solid #444444;
+}
+
+.task-buttons .el-button {
+  min-width: 120px;
+  border-radius: 4px;
+  font-weight: 500;
 }
 
 .task-form {
   margin-bottom: 20px;
 }
 
-.progress-bar {
-  margin: 10px 0;
-}
-
-.progress-message,
-.result-message {
-  margin-bottom: 10px;
-}
-
-.upload-section {
+:deep(.el-card) {
+  background-color: #232323;
+  border: 1px solid #444444; /* 使用浅灰色边框 */
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
   margin-bottom: 20px;
-  padding: 15px;
-  border: 1px solid #ebeef5;
-  border-radius: 4px;
-  background-color: #f8f9fa;
 }
 
-.upload-section h3 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  font-size: 16px;
-  font-weight: bold;
-  color: #303133;
+:deep(.el-card__header) {
+  padding: 15px 20px;
+  border-bottom: 1px solid #444444; /* 使用浅灰色边框 */
+  background-color: #2c2c2c;
 }
 
-.file-selection {
-  margin-bottom: 20px;
-  padding: 15px;
-  border: 1px solid #ebeef5;
-  border-radius: 4px;
-  background-color: #f0f5ff;
-}
-
-.file-selection h3 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  font-size: 16px;
-  font-weight: bold;
-  color: #303133;
-}
-
-.file-list-section {
-  margin-top: 20px;
-}
-
-.file-list-section h3 {
-  margin-top: 0;
-  margin-bottom: 15px;
-  font-size: 16px;
-  font-weight: bold;
-  color: #303133;
-}
-
-.no-files {
-  text-align: center;
+:deep(.el-card__body) {
   padding: 20px;
-  color: #909399;
-  background-color: #f8f9fa;
-  border-radius: 4px;
 }
 
 .card-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+}
+
+.card-header span {
+  font-size: 16px;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+:deep(.el-form-item__label) {
+  color: #b8b8b8;
+  font-weight: 500;
+}
+
+:deep(.el-input__wrapper) {
+  background-color: #2c2c2c;
+  box-shadow: 0 0 0 1px #444444 inset;
+}
+
+:deep(.el-input__inner) {
+  color: #e6e6e6;
+}
+
+:deep(.el-textarea__inner) {
+  background-color: #2c2c2c;
+  border-color: #444444;
+  color: #e6e6e6;
+}
+
+:deep(.el-button--primary) {
+  background-color: #545454;
+  border-color: #545454;
+}
+
+:deep(.el-button--primary:hover) {
+  background-color: #666666;
+  border-color: #666666;
+}
+
+:deep(.el-button--default) {
+  background-color: #2c2c2c;
+  border-color: #444444;
+  color: #e6e6e6;
+}
+
+:deep(.el-button--default:hover) {
+  background-color: #333;
+  border-color: #555;
+}
+
+:deep(.el-button--success) {
+  background-color: #5a5a5a;
+  border-color: #5a5a5a;
+  color: #ffffff;
+}
+
+:deep(.el-button--danger) {
+  background-color: #4a4a4a;
+  border-color: #4a4a4a;
+  color: #ffffff;
+}
+
+.upload-section,
+.file-selection,
+.file-list-section {
+  margin-bottom: 25px;
+}
+
+.upload-section h3,
+.file-selection h3,
+.file-list-section h3 {
+  font-size: 16px;
+  color: #ffffff;
+  margin-bottom: 15px;
+  padding-bottom: 8px;
+  border-bottom: 1px solid #444444;
+}
+
+:deep(.el-upload) {
+  width: 100%;
+}
+
+:deep(.el-upload-dragger) {
+  background-color: #2c2c2c;
+  border: 1px dashed #444444;
+}
+
+:deep(.el-upload-dragger:hover) {
+  background-color: #333;
+  border-color: #555555;
+}
+
+:deep(.el-upload__tip) {
+  color: #b8b8b8;
+}
+
+:deep(.el-table) {
+  background-color: #232323;
+  color: #e6e6e6;
+}
+
+:deep(.el-table th) {
+  background-color: #2c2c2c;
+  color: #e6e6e6;
+  border-bottom: 1px solid #444444;
+}
+
+:deep(.el-table td) {
+  border-bottom: 1px solid #444444;
+}
+
+:deep(.el-table--border) {
+  border: 1px solid #444444; /* 使用浅灰色边框 */
+}
+
+:deep(.el-table--border th),
+:deep(.el-table--border td) {
+  border-right: 1px solid #444444; /* 使用浅灰色边框 */
+}
+
+:deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
+  background-color: #2a2a2a;
+}
+
+:deep(.el-table__body tr.hover-row > td) {
+  background-color: #2c2c2c;
+}
+
+.no-files {
+  text-align: center;
+  padding: 30px;
+  color: #b8b8b8;
+  background-color: #2c2c2c;
+  border-radius: 4px;
+}
+
+.progress-bar {
+  margin: 20px 0;
+}
+
+:deep(.el-progress-bar__outer) {
+  background-color: #333;
+}
+
+:deep(.el-progress-bar__inner) {
+  background-color: #666666;
+}
+
+.progress-message,
+.result-message {
+  margin: 15px 0;
+}
+
+:deep(.el-alert) {
+  background-color: #232323;
+  color: #e6e6e6;
+  border: 1px solid #444444; /* 使用浅灰色边框 */
+}
+
+:deep(.el-alert--info .el-alert__title) {
+  color: #e6e6e6;
+}
+
+:deep(.el-alert--success) {
+  background-color: #2d2d2d;
+  border-color: #444;
+}
+
+:deep(.el-alert--success .el-alert__title) {
+  color: #cccccc;
+}
+
+:deep(.el-alert--error) {
+  background-color: #2d2d2d;
+  border-color: #444;
+}
+
+:deep(.el-alert--error .el-alert__title) {
+  color: #cccccc;
+}
+
+:deep(.el-select .el-input__wrapper) {
+  background-color: #2c2c2c;
+  box-shadow: 0 0 0 1px #444 inset;
+}
+
+:deep(.el-select .el-input__inner) {
+  color: #e6e6e6;
+}
+
+:deep(.el-select-dropdown) {
+  background-color: #2c2c2c;
+  border: 1px solid #444444; /* 使用浅灰色边框 */
+}
+
+:deep(.el-select-dropdown__item) {
+  color: #e6e6e6;
+}
+
+:deep(.el-select-dropdown__item.hover) {
+  background-color: #333;
+}
+
+:deep(.el-select-dropdown__item.selected) {
+  color: #ffffff;
+  background-color: #444;
+}
+
+a {
+  color: #aaaaaa;
+  text-decoration: none;
+}
+
+a:hover {
+  color: #cccccc;
+  text-decoration: underline;
 }
 </style> 

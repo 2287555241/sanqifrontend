@@ -187,9 +187,10 @@ onBeforeUnmount(() => {
 
 .draggable-window {
   position: absolute;
-  background-color: #fff;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  background-color: #1a1a1a;
+  border-radius: 8px;
+  border: 1px solid #444444;
+  box-shadow: 0 4px 16px 0 rgba(0, 0, 0, 0.3);
   display: flex;
   flex-direction: column;
   overflow: hidden;
@@ -197,8 +198,8 @@ onBeforeUnmount(() => {
 
 .window-header {
   padding: 15px;
-  background-color: #f5f7fa;
-  border-bottom: 1px solid #e4e7ed;
+  background-color: #2c2c2c;
+  border-bottom: 1px solid #444444;
   display: flex;
   justify-content: space-between;
   align-items: center;
@@ -208,8 +209,8 @@ onBeforeUnmount(() => {
 
 .window-title {
   font-size: 16px;
-  font-weight: 600;
-  color: #303133;
+  font-weight: 500;
+  color: #e6e6e6;
 }
 
 .window-controls {
@@ -219,11 +220,18 @@ onBeforeUnmount(() => {
 
 .close-button {
   margin-left: 10px;
+  color: #b8b8b8;
+}
+
+.close-button:hover {
+  color: #ffffff;
 }
 
 .window-content {
   flex: 1;
-  padding: 15px;
+  padding: 0;
   overflow-y: auto;
+  background-color: #1a1a1a;
+  color: #e6e6e6;
 }
 </style> 
