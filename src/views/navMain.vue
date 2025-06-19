@@ -71,11 +71,12 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, computed, watch } from 'vue';
+import { ref, onMounted, onBeforeUnmount, computed, watch, defineExpose } from 'vue';
 import { useRouter } from 'vue-router';
 import MapView from './MapView.vue';
 import { emitter, activeView, Events } from '../utils/eventBus';
 import { Plus, Folder, Document, Collection, Help } from '@element-plus/icons-vue';
+import { ElMessage } from 'element-plus';
 
 const router = useRouter();
 const currentView = ref(null);
@@ -100,6 +101,190 @@ const handleActionClick = (action) => {
       // 处理使用帮助
       router.push('/help');
       break;
+  }
+};
+
+// 添加遥感处理结果图层 - 参考combinedMap.js中的方法实现
+const addProcessedLayer = async (layerInfo) => {
+  try {
+    console.log('添加图层到地图:', layerInfo);
+    
+    // 确保当前是地图视图
+    if (activeView.value !== 'map') {
+      activeView.value = 'map';
+      console.log('切换到地图视图');
+      await new Promise(resolve => setTimeout(resolve, 300)); // 等待视图切换
+    }
+    
+    // 确保地图已初始化
+    if (!map || !view) {
+      console.error('地图尚未初始化');
+      ElMessage.error('地图组件尚未初始化，无法添加图层');
+      return;
+    }
+    
+    // 确保图像URL是完整的
+    const imageUrl = layerInfo.url.startsWith('http') ? layerInfo.url : `http://localhost:9191${layerInfo.url}`;
+    // 替换主机名
+    const finalUrl = imageUrl.replace('laptop-9sa3drlj', 'localhost');
+    console.log('处理后的图像URL:', finalUrl);
+
+    // 检查我们是使用ArcGIS API还是Leaflet
+    if (window.L && typeof window.L.map === 'function') {
+      // Leaflet实现 - 类似combinedMap.js
+      console.log('使用Leaflet实现图层添加');
+      
+      // 确保边界格式正确 [[north, west], [south, east]]
+      const bounds = [
+        [layerInfo.bounds.ymax, layerInfo.bounds.xmin], // 左上角 [north, west]
+        [layerInfo.bounds.ymin, layerInfo.bounds.xmax]  // 右下角 [south, east]
+      ];
+      
+      // 创建ID
+      const overlayId = `gsf-result-${Date.now()}`;
+      
+      // 添加图像覆盖层
+      const imageOverlay = L.imageOverlay(finalUrl, bounds, {
+        opacity: 0.8,
+        id: overlayId
+      }).addTo(map);
+      
+      // 缩放到图层范围
+      map.fitBounds(bounds);
+      
+      ElMessage.success(`已添加处理结果: ${layerInfo.name || '栅格处理结果'}`);
+      return;
+    }
+
+    // ArcGIS API实现
+    console.log('使用ArcGIS API实现图层添加');
+    
+    // 准备创建图层
+    await loadModules([
+      'esri/layers/ImageryLayer',
+      'esri/Graphic', 
+      'esri/layers/GraphicsLayer',
+      'esri/geometry/Extent',
+      'esri/layers/support/ImageParameters',
+      'esri/geometry/SpatialReference'
+    ]).then(([ImageryLayer, Graphic, GraphicsLayer, Extent, ImageParameters, SpatialReference]) => {
+      // 创建唯一ID
+      const layerId = `gsf-result-${Date.now()}`;
+      
+      // 创建边界范围对象
+      const extent = new Extent({
+        xmin: layerInfo.bounds.xmin,
+        ymin: layerInfo.bounds.ymin,
+        xmax: layerInfo.bounds.xmax,
+        ymax: layerInfo.bounds.ymax,
+        spatialReference: { wkid: 4326 }
+      });
+      
+      // 移除同ID的已有图层
+      const existingLayer = map.findLayerById(layerId);
+      if (existingLayer) {
+        map.remove(existingLayer);
+      }
+
+      // 创建图形图层
+      const graphicsLayer = new GraphicsLayer({
+        id: `graphics-${layerId}`
+      });
+      map.add(graphicsLayer);
+      
+      // 创建边界框图形
+      const boundaryGraphic = new Graphic({
+        geometry: extent,
+        symbol: {
+          type: "simple-fill",
+          color: [255, 255, 0, 0.1],
+          outline: {
+            color: [255, 0, 0],
+            width: 2
+          }
+        }
+      });
+      graphicsLayer.add(boundaryGraphic);
+
+      // 使用简单的方法：DOM方式添加图像覆盖
+      const imageOverlayId = `overlay-${layerId}`;
+      
+      // 移除已有的图像叠加
+      const existingOverlay = document.getElementById(imageOverlayId);
+      if (existingOverlay) existingOverlay.remove();
+      
+      // 创建图像元素
+      const img = document.createElement('img');
+      img.id = imageOverlayId;
+      img.src = finalUrl;
+      img.style.position = 'absolute';
+      img.style.pointerEvents = 'none';
+      img.style.opacity = '0.8';
+      img.style.zIndex = '100';
+      img.style.transformOrigin = 'top left';
+      
+      // 添加图像到视图容器
+      view.container.appendChild(img);
+      
+      // 图像加载完成后处理
+      img.onload = function() {
+        console.log('处理结果图像加载完成');
+        
+        // 定义图像定位函数
+        const positionImage = () => {
+          try {
+            // 转换地理坐标到屏幕坐标
+            const topLeft = view.toScreen({
+              x: extent.xmin,
+              y: extent.ymax,
+              spatialReference: { wkid: 4326 }
+            });
+            
+            const bottomRight = view.toScreen({
+              x: extent.xmax,
+              y: extent.ymin,
+              spatialReference: { wkid: 4326 }
+            });
+            
+            if (topLeft && bottomRight) {
+              // 设置图像位置和大小
+              img.style.left = `${topLeft.x}px`;
+              img.style.top = `${topLeft.y}px`;
+              img.style.width = `${bottomRight.x - topLeft.x}px`;
+              img.style.height = `${bottomRight.y - topLeft.y}px`;
+              img.style.display = 'block';
+            }
+          } catch (e) {
+            console.error('图像定位错误:', e);
+          }
+        };
+        
+        // 初始定位并缩放到范围
+        view.goTo({target: extent}, {duration: 1000}).then(() => {
+          console.log('已缩放到处理结果区域');
+          positionImage();
+        });
+        
+        // 监听视图变化事件
+        view.watch('extent', positionImage);
+        view.watch('rotation', positionImage);
+        view.on('resize', positionImage);
+      };
+      
+      img.onerror = function() {
+        console.error('图像加载失败:', finalUrl);
+        ElMessage.error('结果图像加载失败');
+      };
+      
+      ElMessage.success(`已添加处理结果: ${layerInfo.name || '栅格处理结果'}`);
+    }).catch(err => {
+      console.error('加载ArcGIS模块失败:', err);
+      ElMessage.error('地图组件加载失败');
+    });
+    
+  } catch (error) {
+    console.error('添加图层失败:', error);
+    ElMessage.error('添加图层失败: ' + (error.message || '未知错误'));
   }
 };
 
@@ -135,6 +320,11 @@ onBeforeUnmount(() => {
   // 移除事件监听
   emitter.off(Events.REFRESH_CONTENT, refreshContentHandler);
   emitter.off(Events.CLEAR_MAP, clearMapHandler);
+});
+
+// 暴露方法给父组件
+defineExpose({
+  addProcessedLayer
 });
 </script>
 

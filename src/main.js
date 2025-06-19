@@ -14,7 +14,7 @@ import directives from './directives' // 导入自定义指令
 import { emitter } from './utils/eventBus' // 导入事件总线
 
 // 配置NProgress
-NProgress.configure({ 
+NProgress.configure({
   showSpinner: false,
   minimum: 0.1
 })
@@ -55,8 +55,8 @@ userStore.initUserInfo()
 const originalConsoleError = console.error;
 console.error = (...args) => {
   // 过滤掉ResizeObserver循环警告
-  if (args.length > 0 && typeof args[0] === 'string' && 
-      args[0].includes('ResizeObserver loop')) {
+  if (args.length > 0 && typeof args[0] === 'string' &&
+    args[0].includes('ResizeObserver loop')) {
     return;
   }
   originalConsoleError.apply(console, args);
@@ -95,15 +95,15 @@ const preloadAMap = () => {
       script.type = 'text/javascript';
       script.async = true;
       script.crossOrigin = "anonymous"; // 允许跨域加载
-      
+
       // 添加缓存控制参数
       const cacheBuster = new Date().getTime();
       script.src = `https://webapi.amap.com/maps?v=2.0&key=c4dd3bd3ae4716656ae2798daebe1339&plugin=AMap.Scale,AMap.ToolBar&callback=initAMapCallback&_=${cacheBuster}`;
-      
+
       // 全局回调函数
       window.initAMapCallback = () => {
         console.log('AMap基础库加载完成');
-        
+
         // 延迟加载插件，分批加载以提高初始化速度
         setTimeout(() => {
           loadAMapPlugins().then(() => {
@@ -115,12 +115,12 @@ const preloadAMap = () => {
           });
         }, 100);
       };
-      
+
       script.onerror = (error) => {
         console.error('AMap预加载失败:', error);
         reject(error);
       };
-      
+
       document.head.appendChild(script);
     });
   });
@@ -135,7 +135,7 @@ const loadAMapPlugins = () => {
         'AMap.PlaceSearch',
       ], () => {
         console.log('基础插件加载完成');
-        
+
         // 延迟加载次要插件
         setTimeout(() => {
           AMap.plugin([
@@ -157,17 +157,17 @@ const loadAMapPlugins = () => {
 // 预加载AMap
 preloadAMap().then(() => {
   console.log('AMap预加载成功，挂载应用');
-  
+
   // 添加全局滚轮事件处理
   setupWheelEventHandler();
-  
+
   app.mount('#app')
 }).catch(error => {
   console.error('AMap预加载失败，但继续挂载应用:', error);
-  
+
   // 即使AMap加载失败，也设置滚轮事件处理
   setupWheelEventHandler();
-  
+
   app.mount('#app')
 })
 
@@ -178,13 +178,13 @@ function setupWheelEventHandler() {
     const hash = window.location.hash;
     return hash.replace('#', '');
   };
-  
+
   // 检查是否在地图页面
   const isMapPage = () => {
     const path = getCurrentPath();
     return path.includes('/tianditu');
   };
-  
+
   // 处理滚轮事件
   window.addEventListener('wheel', (event) => {
     // 只在非地图页面处理
@@ -193,6 +193,6 @@ function setupWheelEventHandler() {
       event.stopPropagation();
     }
   }, { passive: false, capture: false });
-  
+
   console.log('全局滚轮事件处理器已设置');
 }

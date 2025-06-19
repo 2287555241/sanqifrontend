@@ -1,39 +1,48 @@
 <!DOCTYPE html>
 <html lang="">
-  <head>
-    <meta charset="utf-8">
-    <meta http-equiv="X-UA-Compatible" content="IE=edge">
-    <meta name="viewport" content="width=device-width,initial-scale=1.0">
-    <link rel="icon" href="<%= BASE_URL %>favicon.ico">
-    <title><%= htmlWebpackPlugin.options.title %></title>
-    
-    <!-- 添加脚本以捕获并忽略ResizeObserver循环错误 -->
-    <script>
-      window.addEventListener('error', function(e) {
-        if (e && e.message && e.message.includes('ResizeObserver loop')) {
-          e.stopImmediatePropagation();
-          e.preventDefault();
-          return false;
-        }
-      }, true);
-      
-      // 覆盖控制台错误以忽略ResizeObserver循环错误
-      const originalConsoleError = console.error;
-      console.error = function() {
-        if (arguments[0] && 
-            typeof arguments[0] === 'string' && 
-            arguments[0].includes('ResizeObserver loop')) {
-          return;
-        }
-        originalConsoleError.apply(console, arguments);
-      };
-    </script>
-  </head>
-  <body>
-    <noscript>
-      <strong>We're sorry but <%= htmlWebpackPlugin.options.title %> doesn't work properly without JavaScript enabled. Please enable it to continue.</strong>
-    </noscript>
-    <div id="app"></div>
-    <!-- built files will be auto injected -->
-  </body>
+
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width,initial-scale=1.0">
+  <link rel="icon" href="<%= BASE_URL %>favicon.ico">
+  <title>
+    <%= htmlWebpackPlugin.options.title %>
+  </title>
+
+  <!-- GSF SDK -->
+  <script src="http://localhost:9191/sdk/js/GSF.min.js"></script>
+
+  <!-- 添加脚本以捕获并忽略ResizeObserver循环错误 -->
+  <script>
+    window.addEventListener('error', function (e) {
+      if (e && e.message && e.message.includes('ResizeObserver loop')) {
+        e.stopImmediatePropagation();
+        e.preventDefault();
+        return false;
+      }
+    }, true);
+
+    // 覆盖控制台错误以忽略ResizeObserver循环错误
+    const originalConsoleError = console.error;
+    console.error = function () {
+      if (arguments[0] &&
+        typeof arguments[0] === 'string' &&
+        arguments[0].includes('ResizeObserver loop')) {
+        return;
+      }
+      originalConsoleError.apply(console, arguments);
+    };
+  </script>
+</head>
+
+<body>
+  <noscript>
+    <strong>We're sorry but <%= htmlWebpackPlugin.options.title %> doesn't work properly without JavaScript enabled.
+        Please enable it to continue.</strong>
+  </noscript>
+  <div id="app"></div>
+  <!-- built files will be auto injected -->
+</body>
+
 </html>

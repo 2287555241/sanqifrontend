@@ -430,6 +430,9 @@ onMounted(async () => {
   // 监听清除地图事件
   emitter.on(Events.CLEAR_MAP, clearMap)
   
+  // 监听添加处理结果图层事件
+  emitter.on('add-processed-layer', handleAddProcessedLayer)
+  
   // 添加事件监听器清理函数
   const clearEventListener = () => {
     emitter.off(Events.CLEAR_MAP, clearMap)
@@ -440,6 +443,7 @@ onMounted(async () => {
 onBeforeUnmount(() => {
   // 移除事件监听
   emitter.off(Events.CLEAR_MAP, clearMap)
+  emitter.off('add-processed-layer', handleAddProcessedLayer)
   
   // 组件卸载时清理地图资源
   try {
@@ -1815,6 +1819,73 @@ const handleCombinedSunElevationInput = (value) => {
   combinedSunElevationInput.value = cleaned;
   combinedParams.sunElevation = cleaned === '' ? null : parseFloat(cleaned);
 };
+
+// 移除地图弹窗
+const removeMapPopup = () => {
+  if (currentInfoWindow.value) {
+    map.value.remove(currentInfoWindow.value);
+    currentInfoWindow.value = null;
+  }
+};
+
+// 处理添加处理结果图层
+const handleAddProcessedLayer = (layerInfo) => {
+  if (!map.value) {
+    ElMessage.error('地图尚未初始化');
+    return;
+  }
+  
+  try {
+    console.log('添加处理结果图层:', layerInfo);
+    
+    // 确保图像URL是完整的
+    const imageUrl = layerInfo.url.startsWith('http') ? 
+      layerInfo.url : `http://localhost:9191${layerInfo.url}`;
+    
+    // 替换主机名
+    const finalUrl = imageUrl.replace('laptop-9sa3drlj', 'localhost');
+    console.log('处理后的图像URL:', finalUrl);
+    
+    // 创建图像覆盖物的唯一ID
+    const layerId = `gsf-result-image-${layerInfo.id}`;
+    
+    // 移除同ID的已有图层
+    const existingOverlay = map.value.getAllOverlays('image').find(overlay => overlay.getExtData()?.id === layerId);
+    if (existingOverlay) {
+      map.value.remove(existingOverlay);
+    }
+    
+    // 创建图像覆盖物
+    const bounds = new AMap.Bounds(
+      [layerInfo.bounds.xmin, layerInfo.bounds.ymin], 
+      [layerInfo.bounds.xmax, layerInfo.bounds.ymax]
+    );
+    
+    const imageOverlay = new AMap.ImageLayer({
+      url: finalUrl,
+      bounds: bounds,
+      opacity: 0.8,
+      zooms: [3, 18]
+    });
+    
+    // 存储图层ID
+    imageOverlay.setExtData({ id: layerId, name: layerInfo.name });
+    
+    // 添加到地图
+    map.value.add(imageOverlay);
+    
+    // 调整地图视野到图像边界
+    map.value.setBounds(bounds);
+    
+    ElMessage.success(`已添加${layerInfo.name}图层到地图`);
+    
+  } catch (error) {
+    console.error('添加GSF处理结果图层失败:', error);
+    ElMessage.error('添加图层失败: ' + (error.message || '未知错误'));
+  }
+};
+
+// 更新选中的行政区
 </script>
 
 <style scoped>

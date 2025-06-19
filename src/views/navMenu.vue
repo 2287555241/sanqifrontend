@@ -50,6 +50,18 @@
       :visible="dataManagementVisible"
       @close="closeDataManagement"
     />
+
+    <!-- 遥感处理对话框 -->
+    <RemoteSensingProcessor
+      v-model="showRemoteSensingDialog"
+      @addLayer="handleAddLayer"
+    />
+
+    <!-- GSF服务对话框 -->
+    <GSFService
+      v-model="showGSFServiceDialog"
+      @addLayer="handleAddLayer"
+    />
   </el-aside>
 </template>
 
@@ -58,6 +70,8 @@ import { ref, defineEmits, defineProps, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import DraggableDialog from '../components/DraggableDialog.vue'
 import DataManagementDialog from '../components/DataManagementDialog.vue'
+import RemoteSensingProcessor from '../components/RemoteSensingProcessor.vue'
+import GSFService from './GSFService.vue'
 import {
   Picture,
   Crop,
@@ -66,7 +80,11 @@ import {
   Download,
   DataBoard,
   Upload,
-  Management
+  Management,
+  PieChart,
+  Monitor,
+  Connection,
+  Share
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { emitter, activeView, Events } from '../utils/eventBus'
@@ -86,8 +104,16 @@ const dialogStates = ref({
 })
 
 let asidelist = ref([
+   {id:0, title:'遥感处理', icon:Monitor},
    {id:1, title:'数据查询', icon:Picture, route: '/tianditu', view: 'map'},
-   {id:8, title:'数据管理2', icon:Management, view: 'data-management2'} // 数据管理2菜单项，使用对话框而非路由
+   {id:2, title:'种植区提取', icon:Crop},
+   {id:3, title:'产量估算', icon:DataAnalysis},
+   {id:4, title:'耕地数据叠加与分析', icon:Histogram},
+   {id:5, title:'数据导出', icon:Download},
+   {id:6, title:'数据管理', icon:DataBoard},
+   {id:7, title:'地图测试', icon:Connection, externalLink: 'http://localhost:9191/webapp/CombinedMap.html'},
+   {id:8, title:'GSF服务', icon:Share},
+   {id:9, title:'栅格矢量数据管理', icon:Management, route: '/data-management'}
 ])
 
 // 在组件挂载时根据当前路由和视图状态设置选中项
@@ -125,8 +151,10 @@ const updateActiveIndex = () => {
   }
 }
 
-// 数据管理对话框状态
+// 对话框状态
 const dataManagementVisible = ref(false)
+const showRemoteSensingDialog = ref(false)
+const showGSFServiceDialog = ref(false)
 
 const handleMenuItemClick = (item) => {
   // 更新当前活动视图
@@ -141,12 +169,20 @@ const handleMenuItemClick = (item) => {
     emitter.emit(Events.CLEAR_MAP)
   }
   
-  if (item.id === 6) {
+  if (item.id === 0) {
+    // 遥感处理按钮
+    showRemoteSensingDialog.value = true
+  } else if (item.id === 6) {
     // 数据管理按钮，触发事件给父组件
     emit('openDataManagement')
   } else if (item.id === 8) {
-    // 数据管理2按钮，显示自定义对话框
-    dataManagementVisible.value = true
+    // GSF服务按钮
+    showGSFServiceDialog.value = true
+  } else if (item.id === 9) {
+    // 栅格矢量数据管理按钮，直接使用路由导航
+    if (item.route) {
+      router.push(item.route)
+    }
   } else if (item.route) {
     // 如果有route属性，则进行路由跳转
     if (item.id === 1) { // 数据查询按钮
@@ -180,7 +216,12 @@ const closeDataManagement = () => {
   dataManagementVisible.value = false
 }
 
-const emit = defineEmits(['openDataManagement'])
+// 处理添加图层
+const handleAddLayer = (layerInfo) => {
+  emit('addLayer', layerInfo)
+}
+
+const emit = defineEmits(['openDataManagement', 'addLayer', 'openRasterVectorManagement'])
 </script>
 
 <style scoped>

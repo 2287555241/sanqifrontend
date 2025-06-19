@@ -79,8 +79,8 @@ const routes = [
   // 新增数据管理路由
   {
     path: '/data-management',
-    name: 'data-management',
-    component: () => import(/* webpackChunkName: "data-management" */ '@/views/DataManagement.vue'),
+    name: 'DataManagement',
+    component: () => import('../views/DataManagement.vue'),
     meta: {
       requiresAuth: true // 需要登录验证
     }
@@ -111,14 +111,14 @@ const routes = [
     meta: {
       requiresAuth: false // 不需要登录验证
     }
-    },
-      {
+  },
+  {
     path: '/project-management',
     name: 'project-management',
     component: () => import(/* webpackChunkName: "project-management" */ '@/components/ProjectManagement.vue'),
     meta: {
       requiresAuth: true
-      }
+    }
   }
 ]
 
@@ -134,7 +134,7 @@ const router = createRouter({
       // 其他页面启用滚动
       document.body.style.overflow = 'auto';
     }
-    
+
     // 页面切换时滚动到顶部
     return { top: 0 }
   }
@@ -144,16 +144,16 @@ const router = createRouter({
 router.beforeEach((to, from, next) => {
   const token = window.sessionStorage.getItem('token')
   const userInfo = window.sessionStorage.getItem('userInfo')
-  
+
   // 需要认证但无 token，跳转到主页并显示登录弹窗
   if (to.meta.requiresAuth && (!token || !userInfo)) {
     console.log('需要认证但无token，跳转到主页并显示登录弹窗')
     // 将目标路径保存在会话存储中，以便登录后重定向
     window.sessionStorage.setItem('redirectPath', to.fullPath)
-    
+
     // 跳转到主页，并通过查询参数触发登录弹窗
     next({ path: '/main', query: { showLogin: 'true' } })
-  } 
+  }
   // 其他情况正常放行
   else {
     next()

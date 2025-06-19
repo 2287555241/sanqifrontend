@@ -1,17 +1,23 @@
 <template>
   <div class="common-layout indexVue-container">
-    <navMain class="map-bg" />
+    <navMain ref="navMainRef" class="map-bg" />
     <indexHeader @showProjectManagement="handleShowProjectManagement" />
     <div class="content-container">
       <el-container style="background: transparent; box-shadow: none;">
-        <!-- 移除左侧菜单栏 -->
+        <navMenu 
+          @openDataManagement="handleOpenDataManagement" 
+          @addLayer="handleAddLayer"
+          @openRasterVectorManagement="handleOpenRasterVectorManagement"
+        />
       </el-container>
     </div>
     <div 
-      v-if="dataManagementDialogVisible || projectManagementDialogVisible"
+      v-if="dataManagementDialogVisible || projectManagementDialogVisible || rasterVectorManagementVisible"
       class="mask"
       @click="closeAllDialogs"
     ></div>
+
+    <!-- 数据管理对话框 -->
     <div 
       v-if="dataManagementDialogVisible"
       class="data-management-dialog"
@@ -32,6 +38,48 @@
         @enableDrag="setDragDisabled(false)"
       />
     </div>
+
+    <!-- 栅格矢量数据管理对话框 -->
+    <div 
+      v-if="rasterVectorManagementVisible"
+      class="raster-vector-management-dialog"
+      :style="{
+        position: 'fixed',
+        top: rasterVectorPosition.y + 'px',
+        left: rasterVectorPosition.x + 'px',
+        cursor: isRasterVectorDragDisabled ? 'default' : 'move'
+      }"
+      @mousedown="handleRasterVectorMouseDown"
+      @mousemove="handleRasterVectorMouseMove"
+      @mouseup="handleRasterVectorMouseUp"
+      @mouseleave="handleRasterVectorMouseUp"
+    >
+      <el-card class="raster-vector-card">
+        <template #header>
+          <div class="card-header">
+            <span>栅格矢量数据管理</span>
+            <el-button type="danger" circle @click="closeRasterVectorManagement">
+              <el-icon><Close /></el-icon>
+            </el-button>
+          </div>
+        </template>
+        <el-tabs v-model="rasterVectorActiveTab">
+          <el-tab-pane label="矢量数据" name="vector">
+            <VectorDataManager 
+              @disableDrag="setRasterVectorDragDisabled(true)" 
+              @enableDrag="setRasterVectorDragDisabled(false)"
+            />
+          </el-tab-pane>
+          <el-tab-pane label="栅格数据" name="raster">
+            <RasterDataManager 
+              @disableDrag="setRasterVectorDragDisabled(true)" 
+              @enableDrag="setRasterVectorDragDisabled(false)"
+            />
+          </el-tab-pane>
+        </el-tabs>
+      </el-card>
+    </div>
+
     <div 
       v-if="projectManagementDialogVisible"
       class="dialog-overlay"
@@ -51,10 +99,14 @@ import { ref, onMounted, watch, onBeforeUnmount } from 'vue';
 import { useRoute } from 'vue-router';
 import DataManagement from './DataManagement.vue';
 import ProjectManagement from '../components/ProjectManagement.vue';
+import VectorDataManager from './VectorDataManager.vue';
+import RasterDataManager from './RasterDataManager.vue';
 import { emitter, activeView, Events } from '../utils/eventBus';
+import { Close } from '@element-plus/icons-vue';
 
 const route = useRoute();
 
+// 数据管理对话框状态
 const dataManagementDialogVisible = ref(false);
 const projectManagementDialogVisible = ref(false);
 const isDragging = ref(false);
@@ -71,12 +123,35 @@ const projectDialogPosition = ref({
 const dragOffset = ref({ x: 0, y: 0 });
 const projectDragOffset = ref({ x: 0, y: 0 });
 
+// 栅格矢量数据管理对话框状态
+const rasterVectorManagementVisible = ref(false);
+const rasterVectorActiveTab = ref('vector');
+const isRasterVectorDragging = ref(false);
+const isRasterVectorDragDisabled = ref(false);
+const rasterVectorPosition = ref({
+  x: 300,
+  y: 100
+});
+const rasterVectorDragOffset = ref({ x: 0, y: 0 });
+
+// 用于访问navMain组件的引用
+const navMainRef = ref(null);
+
 const handleOpenDataManagement = () => {
   dataManagementDialogVisible.value = true;
   isDragDisabled.value = false;
   dialogPosition.value = {
     x: 250,
     y: 10
+  };
+};
+
+const handleOpenRasterVectorManagement = () => {
+  rasterVectorManagementVisible.value = true;
+  isRasterVectorDragDisabled.value = false;
+  rasterVectorPosition.value = {
+    x: 300,
+    y: 100
   };
 };
 
@@ -94,6 +169,11 @@ const closeDataManagement = () => {
   isDragDisabled.value = false;
 };
 
+const closeRasterVectorManagement = () => {
+  rasterVectorManagementVisible.value = false;
+  isRasterVectorDragDisabled.value = false;
+};
+
 const closeProjectManagement = () => {
   projectManagementDialogVisible.value = false;
   isProjectDragDisabled.value = false;
@@ -102,10 +182,15 @@ const closeProjectManagement = () => {
 const closeAllDialogs = () => {
   closeDataManagement();
   closeProjectManagement();
+  closeRasterVectorManagement();
 };
 
 const setDragDisabled = (disabled) => {
   isDragDisabled.value = disabled;
+};
+
+const setRasterVectorDragDisabled = (disabled) => {
+  isRasterVectorDragDisabled.value = disabled;
 };
 
 const setProjectDragDisabled = (disabled) => {
@@ -124,6 +209,7 @@ onBeforeUnmount(() => {
   emitter.off('show-project-management', handleShowProjectManagement);
 });
 
+// 数据管理对话框拖动
 const handleMouseDown = (e) => {
   if (e.target.closest('.el-table') || e.target.closest('.el-button')) {
     return;
@@ -176,6 +262,67 @@ const handleGlobalMouseUp = () => {
     document.removeEventListener('mouseup', handleGlobalMouseUp);
   }
 };
+
+// 栅格矢量数据管理对话框拖动
+const handleRasterVectorMouseDown = (e) => {
+  if (e.target.closest('.el-table') || e.target.closest('.el-button')) {
+    return;
+  }
+  
+  if (isRasterVectorDragDisabled.value) {
+    return;
+  }
+
+  isRasterVectorDragging.value = true;
+  rasterVectorDragOffset.value = {
+    x: e.clientX - rasterVectorPosition.value.x,
+    y: e.clientY - rasterVectorPosition.value.y
+  };
+
+  document.addEventListener('mousemove', handleRasterVectorGlobalMouseMove);
+  document.addEventListener('mouseup', handleRasterVectorGlobalMouseUp);
+};
+
+const handleRasterVectorMouseMove = (e) => {
+  if (!isRasterVectorDragging.value || isRasterVectorDragDisabled.value) return;
+  
+  rasterVectorPosition.value = {
+    x: e.clientX - rasterVectorDragOffset.value.x,
+    y: e.clientY - rasterVectorDragOffset.value.y
+  };
+};
+
+const handleRasterVectorMouseUp = () => {
+  if (isRasterVectorDragging.value) {
+    isRasterVectorDragging.value = false;
+    document.removeEventListener('mousemove', handleRasterVectorGlobalMouseMove);
+    document.removeEventListener('mouseup', handleRasterVectorGlobalMouseUp);
+  }
+};
+
+const handleRasterVectorGlobalMouseMove = (e) => {
+  if (!isRasterVectorDragging.value || isRasterVectorDragDisabled.value) return;
+  
+  rasterVectorPosition.value = {
+    x: e.clientX - rasterVectorDragOffset.value.x,
+    y: e.clientY - rasterVectorDragOffset.value.y
+  };
+};
+
+const handleRasterVectorGlobalMouseUp = () => {
+  if (isRasterVectorDragging.value) {
+    isRasterVectorDragging.value = false;
+    document.removeEventListener('mousemove', handleRasterVectorGlobalMouseMove);
+    document.removeEventListener('mouseup', handleRasterVectorGlobalMouseUp);
+  }
+};
+
+// 处理添加图层
+const handleAddLayer = (layerInfo) => {
+  if (navMainRef.value) {
+    navMainRef.value.addProcessedLayer(layerInfo);
+  }
+};
 </script>
 
 <style scoped>
@@ -221,5 +368,32 @@ const handleGlobalMouseUp = () => {
   height: 100%;
   background-color: rgba(0, 0, 0, 0.5);
   z-index: 3000;
+}
+
+.raster-vector-management-dialog {
+  z-index: 2000;
+  width: 1000px;
+  max-width: 95vw;
+}
+
+.raster-vector-card {
+  width: 100%;
+  height: 700px;
+  max-height: 90vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.raster-vector-card :deep(.el-card__body) {
+  flex: 1;
+  overflow: auto;
+  padding: 10px;
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
 }
 </style>
