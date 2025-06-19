@@ -5,6 +5,7 @@ import HelpCenter from '@/views/HelpCenter.vue'
 import AboutUs from '@/views/AboutUs.vue'
 import Service from '@/views/Service.vue'
 import MapView from '@/views/MapView.vue'
+import RasterDataImport from '@/views/RasterDataImport.vue' // 导入栅格数据导入页面
 
 const routes = [
   {
@@ -91,6 +92,24 @@ const routes = [
       requiresAuth: true // 需要登录验证
     }
   },
+  // 添加栅格数据导入路由
+  {
+    path: '/raster-import',
+    name: 'raster-import',
+    component: RasterDataImport,
+    meta: {
+      requiresAuth: true // 需要登录验证
+    }
+  },
+  // 添加栅格数据管理路由
+  {
+    path: '/raster-management',
+    name: 'raster-management',
+    component: () => import(/* webpackChunkName: "raster-management" */ '@/views/RasterDataManagement.vue'),
+    meta: {
+      requiresAuth: true // 需要登录验证
+    }
+  },
   // 添加地图查看路由
   {
     path: '/tianditu',
@@ -114,6 +133,15 @@ const router = createRouter({
   history: createWebHashHistory(),
   routes,
   scrollBehavior(to, from, savedPosition) {
+    // 在路由切换时处理滚动行为
+    if (to.name === 'tianditu') {
+      // 地图页面禁用滚动
+      document.body.style.overflow = 'hidden';
+    } else {
+      // 其他页面启用滚动
+      document.body.style.overflow = 'auto';
+    }
+    
     // 页面切换时滚动到顶部
     return { top: 0 }
   }

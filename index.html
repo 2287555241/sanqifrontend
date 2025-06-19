@@ -5,10 +5,30 @@
     <link rel="icon" href="/favicon.ico">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Vite App</title>
-    <!-- 直接引入高德地图API - 去掉async defer属性确保优先加载 -->
-    <script type="text/javascript" src="https://webapi.amap.com/maps?v=1.4.15&key=f7aa41ab3112b5fc450b547c00771fdc&plugin=AMap.Scale,AMap.ToolBar,AMap.DistrictSearch,AMap.PlaceSearch,AMap.DistrictLayer"></script>
-    <!-- 添加UI库 -->
-    <script type="text/javascript" src="https://webapi.amap.com/ui/1.1/main.js"></script>
+    
+    <!-- DNS预解析，提高域名解析速度 -->
+    <link rel="dns-prefetch" href="//webapi.amap.com">
+    <link rel="dns-prefetch" href="//a.amap.com">
+    <link rel="dns-prefetch" href="//restapi.amap.com">
+    
+    <!-- 预连接，建立早期连接 -->
+    <link rel="preconnect" href="https://webapi.amap.com" crossorigin>
+    <link rel="preconnect" href="https://a.amap.com" crossorigin>
+    
+    <!-- 预加载CSS -->
+    <link rel="preload" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css" as="style">
+    <link rel="stylesheet" href="https://a.amap.com/jsapi_demos/static/demo-center/css/demo-center.css">
+    
+    <!-- 高德地图配置 -->
+    <script type="text/javascript">
+      window._AMapSecurityConfig = {
+        securityJsCode: '您的安全密钥',
+        serviceHost: 'https://a.amap.com'
+      };
+    </script>
+    
+    <!-- 异步加载高德地图基础API，确保包含所有必要的插件 -->
+    <script type="text/javascript" src="https://webapi.amap.com/maps?v=2.0&key=c4dd3bd3ae4716656ae2798daebe1339&plugin=AMap.Scale,AMap.ToolBar,AMap.DistrictSearch,AMap.PlaceSearch,AMap.DistrictLayer,AMap.Text"></script>
   </head>
   <body>
     <div id="app"></div>

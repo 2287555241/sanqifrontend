@@ -64,7 +64,6 @@
                 <el-input 
                   v-model="tempLoginForm.username" 
                   placeholder="请输入用户名"
-                  prefix-icon="User"
                   class="custom-input"
                 />
               </el-form-item>
@@ -73,8 +72,8 @@
                   v-model="tempLoginForm.password" 
                   type="password" 
                   placeholder="请输入密码"
-                  prefix-icon="Lock"
                   class="custom-input"
+                  :prefix-icon="Lock"
                   @keyup.enter="tempLogin"
                 />
               </el-form-item>
@@ -94,7 +93,6 @@
                 <el-input 
                   v-model="tempRegisterForm.username" 
                   placeholder="请输入用户名"
-                  prefix-icon="User"
                   class="custom-input"
                 />
               </el-form-item>
@@ -103,8 +101,8 @@
                   v-model="tempRegisterForm.password" 
                   type="password" 
                   placeholder="请输入密码"
-                  prefix-icon="Lock"
                   class="custom-input"
+                  :prefix-icon="Lock"
                 />
               </el-form-item>
               <el-form-item>
@@ -112,8 +110,8 @@
                   v-model="tempRegisterForm.confirmPassword" 
                   type="password" 
                   placeholder="请确认密码"
-                  prefix-icon="Lock"
                   class="custom-input"
+                  :prefix-icon="Lock"
                   @keyup.enter="tempRegister"
                 />
               </el-form-item>
@@ -615,32 +613,96 @@ const tempRegister = () => {
   margin-bottom: 24px;
 }
 
+/* 确保所有输入框样式一致 */
 :deep(.custom-input .el-input__wrapper) {
+  background-color: transparent;
+  border-radius: 0;
+  padding: 0;
+  box-shadow: none !important;
+  border: none;
+}
+
+.custom-input {
   background-color: #f5f7fa;
   border-radius: 8px;
-  padding: 12px;
-  box-shadow: none;
   border: 1px solid #e4e7ed;
+  padding: 0 12px;
   transition: all 0.3s ease;
+  height: 48px; /* 增加高度 */
+  display: flex;
+  align-items: center;
 }
 
-:deep(.custom-input .el-input__wrapper:hover) {
+.custom-input:hover {
   border-color: #409eff;
 }
 
-:deep(.custom-input .el-input__wrapper.is-focus) {
+.custom-input:focus-within {
   border-color: #409eff;
-  box-shadow: 0 0 0 2px rgba(64, 158, 255, 0.1);
+  box-shadow: 0 0 0 1px rgba(64, 158, 255, 0.2);
 }
 
 :deep(.custom-input .el-input__inner) {
-  height: 40px;
-  line-height: 40px;
+  height: 46px;
+  line-height: 46px;
+  color: #333;
+  background-color: transparent !important;
+  box-shadow: none !important;
+  border: none !important;
+  text-align: left;
+  padding-left: 0;
+}
+
+/* 自定义图标样式 */
+:deep(.custom-input .el-input__prefix) {
+  margin-right: 8px;
 }
 
 :deep(.custom-input .el-input__prefix-inner) {
-  font-size: 18px;
+  display: flex;
+  align-items: center;
+}
+
+:deep(.custom-input .el-input__icon) {
   color: #909399;
+  font-size: 16px;
+}
+
+/* 确保输入内容左对齐 */
+:deep(.el-input__wrapper) {
+  justify-content: flex-start;
+}
+
+/* 移除分隔线 */
+:deep(.custom-input .el-input__prefix) {
+  border: none !important;
+}
+
+:deep(.custom-input .el-input__prefix)::after {
+  display: none !important;
+}
+
+/* 重置Element Plus的默认样式 */
+:deep(.el-input) {
+  --el-input-bg-color: transparent;
+  --el-input-border-color: transparent;
+  --el-input-hover-border-color: transparent;
+  --el-input-focus-border-color: transparent;
+  --el-input-border: none;
+}
+
+:deep(.el-input__wrapper) {
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* 调整表单项间距 */
+.custom-form .el-form-item {
+  margin-bottom: 20px; /* 增加间距 */
+}
+
+.custom-form .el-form-item:last-child {
+  margin-bottom: 0;
 }
 
 .auth-actions {

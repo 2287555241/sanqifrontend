@@ -25,14 +25,13 @@
     class="login-el-form"
   >
     <el-form-item prop="username" label=" " class="login-el-form-item">
-      <el-input
-        type="text"
-        placeholder="用户名"
-        :suffix-icon="User"
-        v-model="registerForm.username"
-        class="login-input"
-        :disabled="loading"
-      />
+                  <el-input
+              type="text"
+              placeholder="用户名"
+              v-model="registerForm.username"
+              class="login-input"
+              :disabled="loading"
+            />
     </el-form-item>
     <el-form-item prop="password" label=" " class="login-el-form-item">
       <el-input
@@ -98,7 +97,6 @@
             <el-input
               type="text"
               placeholder="用户名"
-              :suffix-icon="User"
               v-model="loginForm.username"
               class="login-input"
               :disabled="loading"

@@ -115,6 +115,12 @@
         </ul>
       </div>
     </DraggableDialog>
+
+    <!-- 数据管理对话框 -->
+    <DataManagementDialog
+      :visible="dataManagementVisible"
+      @close="closeDataManagement"
+    />
   </el-aside>
 </template>
 
@@ -122,6 +128,7 @@
 import { ref, defineEmits, defineProps, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import DraggableDialog from '../components/DraggableDialog.vue'
+import DataManagementDialog from '../components/DataManagementDialog.vue'
 import {
   Picture,
   Crop,
@@ -129,7 +136,8 @@ import {
   Histogram,
   Download,
   DataBoard,
-  Upload
+  Upload,
+  Management
 } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import { emitter, activeView, Events } from '../utils/eventBus'
@@ -158,7 +166,9 @@ let asidelist = ref([
    {id:3, title:'产量估算', icon:DataAnalysis, view: 'yield'},
    {id:4, title:'耕地数据叠加与分析', icon:Histogram, view: 'overlay'},
    {id:5, title:'数据导出', icon:Download, view: 'export'},
-   {id:6, title:'数据管理', icon:DataBoard, route: '/data-management', view: 'data-management'} // 数据管理菜单项
+   {id:6, title:'数据管理', icon:DataBoard, route: '/data-management', view: 'data-management'}, // 数据管理菜单项
+   {id:7, title:'栅格数据管理', icon:Picture, route: '/raster-management', view: 'raster-management'}, // 栅格数据管理菜单项
+   {id:8, title:'数据管理2', icon:Management, view: 'data-management2'} // 数据管理2菜单项，使用对话框而非路由
 ])
 
 // 在组件挂载时根据当前路由和视图状态设置选中项
@@ -196,6 +206,9 @@ const updateActiveIndex = () => {
   }
 }
 
+// 数据管理对话框状态
+const dataManagementVisible = ref(false)
+
 const handleMenuItemClick = (item) => {
   // 更新当前活动视图
   activeView.value = item.view
@@ -212,6 +225,9 @@ const handleMenuItemClick = (item) => {
   if (item.id === 6) {
     // 数据管理按钮，触发事件给父组件
     emit('openDataManagement')
+  } else if (item.id === 8) {
+    // 数据管理2按钮，显示自定义对话框
+    dataManagementVisible.value = true
   } else if (item.route) {
     // 如果有route属性，则进行路由跳转
     if (item.id === 1) { // 数据查询按钮
@@ -228,7 +244,7 @@ const handleMenuItemClick = (item) => {
         query: query
       })
     } else {
-      router.push(item.route)
+    router.push(item.route)
     }
   } else if (dialogStates.value[item.id]) {
     // 否则打开对应的对话框
@@ -238,6 +254,11 @@ const handleMenuItemClick = (item) => {
 
 const closeDialog = (id) => {
   dialogStates.value[id].visible = false
+}
+
+const closeDataManagement = () => {
+  // 关闭数据管理对话框
+  dataManagementVisible.value = false
 }
 
 const emit = defineEmits(['openDataManagement'])

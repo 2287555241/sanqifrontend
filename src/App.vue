@@ -1,6 +1,6 @@
 <template>
   <div class="app-container">
-    <router-view/>
+  <router-view/>
     <div v-if="shouldShowProjectName" class="project-name-footer">
       <span class="project-name-label">项目：</span>
       {{ currentProject.name }}
@@ -34,23 +34,40 @@ const shouldShowProjectName = computed(() => {
   box-sizing: border-box;
 }
 
+html, body {
+  margin: 0;
+  padding: 0;
+  height: 100%;
+  width: 100%;
+  background-color: #1a1a1a;
+  /* 移除 overflow: hidden，允许页面滚动 */
+}
+
 #app {
   font-family: Avenir, Helvetica, Arial, sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  color: #2c3e50;
+  color: #e0e0e0;
+  height: 100%;
+  width: 100%;
+  /* 移除overflow: hidden，允许滚动 */
 }
 
 body {
   font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   font-size: 14px;
   line-height: 1.5;
-  background-color: #f5f7fa;
+  background-color: #1a1a1a;
+  /* 默认允许滚动 */
+  overflow-y: auto;
 }
 
 .app-container {
   position: relative;
   min-height: 100vh;
+  background-color: #1a1a1a;
+  /* 允许内容滚动 */
+  overflow-y: auto;
 }
 
 .project-name-footer {
@@ -59,13 +76,15 @@ body {
   left: 0;
   width: 100%;
   padding: 5px 16px;
-  background-color: rgba(26, 26, 26, 0.9);
+  background-color: #1a1a1a;
   color: #e6e6e6;
   font-size: 14px;
   z-index: 1000;
   display: flex;
   align-items: center;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: none;
+  box-shadow: none;
+  height: 26px;
 }
 
 .project-name-label {

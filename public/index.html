@@ -6,6 +6,28 @@
     <meta name="viewport" content="width=device-width,initial-scale=1.0">
     <link rel="icon" href="<%= BASE_URL %>favicon.ico">
     <title><%= htmlWebpackPlugin.options.title %></title>
+    
+    <!-- 添加脚本以捕获并忽略ResizeObserver循环错误 -->
+    <script>
+      window.addEventListener('error', function(e) {
+        if (e && e.message && e.message.includes('ResizeObserver loop')) {
+          e.stopImmediatePropagation();
+          e.preventDefault();
+          return false;
+        }
+      }, true);
+      
+      // 覆盖控制台错误以忽略ResizeObserver循环错误
+      const originalConsoleError = console.error;
+      console.error = function() {
+        if (arguments[0] && 
+            typeof arguments[0] === 'string' && 
+            arguments[0].includes('ResizeObserver loop')) {
+          return;
+        }
+        originalConsoleError.apply(console, arguments);
+      };
+    </script>
   </head>
   <body>
     <noscript>
