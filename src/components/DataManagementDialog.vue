@@ -2,7 +2,7 @@
   <div v-if="visible" class="data-management-dialog-container">
     <div class="dialog-header">
       <div class="dialog-title">数据管理</div>
-      <el-button icon="Close" circle @click="$emit('close')" class="close-btn" />
+      <el-icon class="close-icon" @click="$emit('close')"><Close /></el-icon>
     </div>
     
     <div class="dialog-content">
@@ -126,7 +126,8 @@
     <el-dialog
       v-model="rasterImportDialogVisible"
       title="栅格数据导入"
-      width="800px"
+      width="550px"
+      :top="'100px'"
       destroy-on-close
       @closed="resetRasterImportForm"
     >
@@ -135,39 +136,38 @@
           <h3>选择TIF文件:</h3>
           <div class="file-upload-box">
             <el-upload
-              class="tif-upload"
+              class="tif-upload horizontal-upload"
               action="http://localhost:8888/api/raster/upload"
               :auto-upload="false"
               :limit="1"
               :on-change="handleTifChange"
               :file-list="tifFileList"
             >
-              <el-button class="upload-button">选择文件</el-button>
-              <template #tip>
+              <div class="upload-row">
+                <el-button class="upload-button" size="small">选择文件</el-button>
                 <div class="upload-tip">{{ tifFileName || '未选择文件' }}</div>
-              </template>
+              </div>
             </el-upload>
           </div>
         </div>
 
         <div class="file-section">
-          <h3>选择MTL文件:</h3>
+          <h3>选择MTL文件: <span class="mtl-description">包含云量等元数据信息的文件</span></h3>
           <div class="file-upload-box">
             <el-upload
-              class="mtl-upload"
+              class="mtl-upload horizontal-upload"
               action="http://localhost:8888/api/raster/upload-mtl"
               :auto-upload="false"
               :limit="1"
               :on-change="handleMtlChange"
               :file-list="mtlFileList"
             >
-              <el-button class="upload-button">选择文件</el-button>
-              <template #tip>
+              <div class="upload-row">
+                <el-button class="upload-button" size="small">选择文件</el-button>
                 <div class="upload-tip">{{ mtlFileName || '未选择文件' }}</div>
-              </template>
+              </div>
             </el-upload>
           </div>
-          <div class="mtl-description">包含云量等元数据信息的文件</div>
         </div>
 
         <div class="description-section">
@@ -175,7 +175,7 @@
           <el-input
             type="textarea"
             v-model="rasterDescription"
-            :rows="6"
+            :rows="3"
             placeholder="请输入栅格数据的描述信息"
             class="description-textarea"
           ></el-input>
@@ -241,7 +241,7 @@
 import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
-import { DocumentDelete } from '@element-plus/icons-vue'
+import { DocumentDelete, Close } from '@element-plus/icons-vue'
 import apiConfig from '@/config/api'
 import { emitter, Events } from '@/utils/eventBus'
 
@@ -652,67 +652,72 @@ const batchDelete = () => {
 
 <style scoped>
 .data-management-dialog-container {
-  width: 90vw; /* 使用视口宽度的90%，更好地填充屏幕 */
-  max-width: 1600px; /* 设置最大宽度防止在大屏幕上过宽 */
-  height: 700px;
-  background-color: #fff;
-  border-radius: 4px;
-  box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
+  width: 350px;
+  height: calc(100vh - 30px);
+  background-color: #1a1a1a;
+  border-radius: 8px 0 0 8px;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   position: fixed;
-  top: 50%;
-  left: 50%;
-  transform: translate(-50%, -50%);
+  top: 30px;
+  right: 0;
   z-index: 2000;
   display: flex;
   flex-direction: column;
+  color: #fff;
+  padding: 0;
 }
-
-/* 移除遮罩层 */
 
 .dialog-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 15px 20px;
-  background-color: #f5f7fa;
-  border-bottom: 1px solid #e4e7ed;
+  padding: 18px 20px 10px 20px;
+  background-color: #232323;
+  border-bottom: 1px solid #333;
 }
 
 .dialog-title {
-  font-size: 18px;
-  font-weight: bold;
-  color: #303133;
+  font-size: 16px;
+  font-weight: 500;
+  color: #fff;
 }
 
-.close-btn {
-  padding: 6px;
+.close-icon {
+  font-size: 20px;
+  color: #b8b8b8;
+  cursor: pointer;
+  transition: all 0.3s;
+}
+.close-icon:hover {
+  color: #f56c6c;
+  transform: scale(1.2);
 }
 
 .dialog-content {
-  padding: 0;
-  overflow-y: hidden;
+  padding: 0 0 0 0;
+  overflow-y: auto;
   flex: 1;
-  height: calc(100% - 60px);
-  max-height: 90vh;
-  width: 100%; /* 确保内容区域使用100%宽度 */
+  height: 100%;
+  width: 100%;
+  background: #1a1a1a;
 }
 
 .full-height-tabs {
   height: 100%;
-  width: 100%; /* 确保标签页使用100%宽度 */
+  width: 100%;
 }
 
 :deep(.el-tabs__content) {
   height: calc(100% - 40px);
   min-height: 400px;
   overflow: visible;
-  width: 100%; /* 确保标签内容使用100%宽度 */
+  width: 100%;
 }
 
 :deep(.el-tab-pane) {
   height: auto;
-  width: 100%; /* 确保标签页面板使用100%宽度 */
+  width: 100%;
 }
 
 .table-footer {
@@ -729,59 +734,72 @@ const batchDelete = () => {
   gap: 10px;
 }
 
-/* 调整表格样式 */
 :deep(.el-table__body-wrapper) {
   overflow-y: auto;
-  height: calc(100% - 40px); /* 减去表头的高度 */
+  height: calc(100% - 40px);
 }
 
-/* 增加表格行高 */
 :deep(.el-table__row) {
   height: 50px;
 }
 
-/* 增加表格头部行高 */
 :deep(.el-table__header) th {
   padding: 12px 0;
   font-weight: bold;
+  background: #232323;
+  color: #fff;
 }
 
-/* 确保表格占据所有可用空间 */
 :deep(.el-table) {
   width: 100% !important;
+  background: #1a1a1a;
+  color: #fff;
 }
 
-/* 调整单元格内容对齐 */
 :deep(.el-table__cell) {
   text-align: center;
   padding: 8px 0;
+  background: #1a1a1a;
+  color: #fff;
 }
 
-/* 增强表格视觉效果 */
 :deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
-  background-color: #f5f7fa;
+  background-color: #232323;
 }
 
-/* 确保所有表格列均分空间 */
 :deep(.el-table__header-wrapper) {
   width: 100%;
 }
 
+.empty-data-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20px;
+  color: #fff;
+}
+
+.error-hint {
+  color: #f56c6c;
+  margin-top: 10px;
+  margin-bottom: 20px;
+}
+
 /* 栅格数据导入样式 */
 .raster-import-container {
-  padding: 30px;
-  max-height: 600px;
-  overflow-y: hidden;
+  padding: 15px;
+  max-height: 400px;
+  overflow-y: auto;
 }
 
 .file-section {
-  margin-bottom: 30px;
+  margin-bottom: 15px;
 }
 
 .file-section h3 {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
   color: #333;
 }
 
@@ -790,35 +808,38 @@ const batchDelete = () => {
   align-items: center;
   border: 1px solid #dcdfe6;
   border-radius: 4px;
-  padding: 20px;
+  padding: 8px;
   background-color: #f8f8f8;
-  height: 80px;
+  height: 42px;
 }
 
 .upload-button {
-  margin-right: 10px;
+  margin-right: 8px;
+  height: 28px;
+  line-height: 8px;
 }
 
 .upload-tip {
   color: #606266;
-  font-size: 14px;
+  font-size: 13px;
   flex: 1;
 }
 
 .mtl-description {
   color: #909399;
   font-size: 12px;
-  margin-top: 5px;
+  margin-left: 5px;
+  font-weight: normal;
 }
 
 .description-section {
-  margin-bottom: 30px;
+  margin-bottom: 10px;
 }
 
 .description-section h3 {
-  font-size: 16px;
+  font-size: 14px;
   font-weight: 500;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
   color: #333;
 }
 
@@ -836,19 +857,6 @@ const batchDelete = () => {
   font-size: 16px;
 }
 
-.empty-data-container {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  padding: 20px;
-}
-
-.error-hint {
-  color: #f56c6c;
-  margin-top: 10px;
-  margin-bottom: 20px;
-}
-
 /* 编辑数据对话框样式 */
 .edit-container {
   padding: 20px;
@@ -856,5 +864,101 @@ const batchDelete = () => {
 
 .operation-options {
   margin-top: 20px;
+}
+
+/* 对话框样式优化 */
+:deep(.el-dialog__body) {
+  padding: 10px 20px 15px;
+  max-height: 400px;
+}
+
+:deep(.el-dialog__header) {
+  padding: 10px;
+}
+
+:deep(.el-dialog__footer) {
+  padding: 15px 20px 20px;
+}
+
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.upload-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+.upload-row .upload-button {
+  margin-right: 12px;
+}
+.upload-row .upload-tip {
+  flex: 1;
+  text-align: left;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.horizontal-upload .el-upload {
+  width: 100%;
+}
+
+/* 统一弹窗风格 */
+:deep(.el-dialog) {
+  border-radius: 12px !important;
+  box-shadow: 0 4px 32px 0 rgba(0,0,0,0.12) !important;
+  background: #fff !important;
+}
+:deep(.el-dialog__header) {
+  padding: 18px 24px 10px 24px !important;
+  border-bottom: 1px solid #f0f0f0;
+}
+:deep(.el-dialog__title) {
+  font-size: 20px !important;
+  font-weight: bold !important;
+  color: #222 !important;
+  letter-spacing: 1px;
+}
+:deep(.el-dialog__body) {
+  padding: 20px 32px 10px 32px !important;
+  background: #fff !important;
+}
+:deep(.el-dialog__footer) {
+  padding: 16px 32px 24px 32px !important;
+  border-top: 1px solid #f0f0f0;
+  background: #fff !important;
+}
+.dialog-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 16px;
+}
+/* 统一表单项间距和输入框样式 */
+:deep(.el-form-item) {
+  margin-bottom: 18px !important;
+}
+:deep(.el-input), :deep(.el-textarea) {
+  border-radius: 6px !important;
+  font-size: 15px !important;
+}
+:deep(.el-input__inner), :deep(.el-textarea__inner) {
+  background: #fafbfc !important;
+  border: 1px solid #dcdfe6 !important;
+  color: #222 !important;
+}
+:deep(.el-button) {
+  min-width: 90px;
+  font-size: 15px;
+  border-radius: 6px;
+}
+:deep(.el-button--primary) {
+  background: #409eff;
+  border-color: #409eff;
+}
+:deep(.el-button--danger) {
+  background: #f56c6c;
+  border-color: #f56c6c;
 }
 </style>

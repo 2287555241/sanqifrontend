@@ -29,199 +29,221 @@
     <div ref="mapContainer" class="map-content"></div>
 
         <!-- 控制栏只在非纯地图模式下显示 -->
-        <div v-if="!isOnlyMapMode" class="map-controls-sidebar">
-      <div class="control-panel">
-        <div class="control-panel-section">
-          <div class="control-panel-title">地图模式</div>
-          <div class="map-style-selector">
-            <div class="map-style-label">地图样式</div>
-            <div class="map-style-options">
-              <el-radio-group v-model="currentStyle" size="small" @change="changeMapStyle">
-                <el-radio-button label="normal">标准</el-radio-button>
-                <el-radio-button label="satellite">卫星</el-radio-button>
-                <el-radio-button label="dark">深色</el-radio-button>
-              </el-radio-group>
-            </div>
-          </div>
-        </div>
-
-        <div class="control-panel-section">
-          <div class="control-panel-title">位置搜索</div>
-          <!-- 栅格数据搜索按钮组 -->
-          <div class="search-tabs">
-            <div class="search-type-buttons">
-              <el-button 
-                :class="{ active: activeSearchType === 'cloudCover' }"
-                :type="activeSearchType === 'cloudCover' ? 'primary' : ''" 
-                size="small" 
-                @click="activeSearchType = 'cloudCover'"
-              >云量检索</el-button>
-              <el-button 
-                :class="{ active: activeSearchType === 'date' }"
-                :type="activeSearchType === 'date' ? 'primary' : ''" 
-                size="small" 
-                @click="activeSearchType = 'date'"
-              >日期检索</el-button>
-              <el-button 
-                :class="{ active: activeSearchType === 'sunElevation' }"
-                :type="activeSearchType === 'sunElevation' ? 'primary' : ''" 
-                size="small" 
-                @click="activeSearchType = 'sunElevation'"
-              >高度角检索</el-button>
-              <el-button 
-                :class="{ active: activeSearchType === 'combined' }"
-                :type="activeSearchType === 'combined' ? 'primary' : ''" 
-                size="small" 
-                @click="activeSearchType = 'combined'"
-              >组合检索</el-button>
-            </div>
-          </div>
+        <div v-if="!isOnlyMapMode && showSidebarContent" class="map-controls-sidebar" :style="{ width: sidebarWidth + 'px' }">
+          <!-- 拖拽条 -->
+          <div class="sidebar-resizer" @mousedown="startResizing"></div>
           
-          <!-- 云量检索 -->
-          <div v-if="activeSearchType === 'cloudCover'" class="search-panel">
-            <div class="form-item">
-              <label>云量大于等于 (%)</label>
-            <el-input 
-                v-model="cloudCoverInput"
-                size="small"
-                placeholder="输入最小云量"
-                class="simple-input"
-                @input="handleCloudCoverInput"
-                @keyup.enter="searchByCloudCover"
-            >
-            </el-input>
-            </div>
-            <el-button type="primary" @click="searchByCloudCover" class="search-btn-full">按云量查询</el-button>
-          </div>
-          
-          <!-- 采集日期检索 -->
-          <div v-if="activeSearchType === 'date'" class="search-panel">
-            <div class="form-item">
-              <label>开始日期</label>
-              <el-date-picker
-                v-model="startDate"
-                type="date"
-                placeholder="选择开始日期"
-                format="YYYY-MM-DD"
-                size="small"
-                style="width: 100%"
-                class="search-date-input"
-              />
-            </div>
-            <div class="form-item">
-              <label>结束日期</label>
-              <el-date-picker
-                v-model="endDate"
-                type="date"
-                placeholder="选择结束日期"
-                format="YYYY-MM-DD"
-                size="small"
-                style="width: 100%"
-                class="search-date-input"
-              />
-            </div>
-            <el-button type="primary" @click="searchByDate" class="search-btn-full">按日期查询</el-button>
-          </div>
-
-          <!-- 太阳高度角检索 -->
-          <div v-if="activeSearchType === 'sunElevation'" class="search-panel">
-            <div class="form-item">
-              <label>太阳高度角大于等于 (度)</label>
-              <el-input
-                v-model="sunElevationInput"
-                size="small"
-                placeholder="输入最小太阳高度角"
-                class="simple-input"
-                @input="handleSunElevationInput"
-                @keyup.enter="searchBySunElevation"
-              >
-              </el-input>
+          <!-- 内容面板区域 -->
+          <div class="sidebar-content">
+            <!-- 数据查询面板内容 -->
+            <div class="control-panel">
+              <div class="control-panel-section">
+                <div class="control-panel-title">地图模式</div>
+                <div class="map-style-selector">
+                  <div class="map-style-label">地图样式</div>
+                  <div class="map-style-options">
+                    <el-radio-group v-model="currentStyle" size="small" @change="changeMapStyle">
+                      <el-radio-button label="normal">标准</el-radio-button>
+                      <el-radio-button label="satellite">卫星</el-radio-button>
+                      <el-radio-button label="dark">深色</el-radio-button>
+                    </el-radio-group>
+                  </div>
+                </div>
               </div>
-            <el-button type="primary" @click="searchBySunElevation" class="search-btn-full">按太阳高度角查询</el-button>
-          </div>
 
-          <!-- 组合检索 -->
-          <div v-if="activeSearchType === 'combined'" class="search-panel">
-            <div class="form-item">
-              <label>云量大于等于 (%)</label>
-              <el-input
-                v-model="combinedCloudCoverInput"
-                size="small"
-                placeholder="输入最小云量"
-                class="simple-input"
-                @input="handleCombinedCloudCoverInput"
-              >
-              </el-input>
+              <div class="control-panel-section">
+                <div class="control-panel-title">位置搜索</div>
+                <!-- 栅格数据搜索按钮组 -->
+                <div class="search-tabs">
+                  <div class="search-type-buttons">
+                    <el-button 
+                      :class="{ active: activeSearchType === 'cloudCover' }"
+                      :type="activeSearchType === 'cloudCover' ? 'primary' : ''" 
+                      size="small" 
+                      @click="activeSearchType = 'cloudCover'"
+                    >云量检索</el-button>
+                    <el-button 
+                      :class="{ active: activeSearchType === 'date' }"
+                      :type="activeSearchType === 'date' ? 'primary' : ''" 
+                      size="small" 
+                      @click="activeSearchType = 'date'"
+                    >日期检索</el-button>
+                    <el-button 
+                      :class="{ active: activeSearchType === 'sunElevation' }"
+                      :type="activeSearchType === 'sunElevation' ? 'primary' : ''" 
+                      size="small" 
+                      @click="activeSearchType = 'sunElevation'"
+                    >高度角检索</el-button>
+                    <el-button 
+                      :class="{ active: activeSearchType === 'combined' }"
+                      :type="activeSearchType === 'combined' ? 'primary' : ''" 
+                      size="small" 
+                      @click="activeSearchType = 'combined'"
+                    >组合检索</el-button>
+                  </div>
+                </div>
+                
+                <!-- 云量检索 -->
+                <div v-if="activeSearchType === 'cloudCover'" class="search-panel">
+                  <div class="form-item">
+                    <label>云量大于等于 (%)</label>
+                  <el-input 
+                      v-model="cloudCoverInput"
+                      size="small"
+                      placeholder="输入最小云量"
+                      class="simple-input"
+                      @input="handleCloudCoverInput"
+                      @keyup.enter="searchByCloudCover"
+                  >
+                  </el-input>
+                  </div>
+                  <el-button type="primary" @click="searchByCloudCover" class="search-btn-full">按云量查询</el-button>
+                </div>
+                
+                <!-- 采集日期检索 -->
+                <div v-if="activeSearchType === 'date'" class="search-panel">
+                  <div class="form-item">
+                    <label>开始日期</label>
+                    <el-date-picker
+                      v-model="startDate"
+                      type="date"
+                      placeholder="选择开始日期"
+                      format="YYYY-MM-DD"
+                      size="small"
+                      style="width: 100%"
+                      class="search-date-input"
+                    />
+                  </div>
+                  <div class="form-item">
+                    <label>结束日期</label>
+                    <el-date-picker
+                      v-model="endDate"
+                      type="date"
+                      placeholder="选择结束日期"
+                      format="YYYY-MM-DD"
+                      size="small"
+                      style="width: 100%"
+                      class="search-date-input"
+                    />
+                  </div>
+                  <el-button type="primary" @click="searchByDate" class="search-btn-full">按日期查询</el-button>
+                </div>
+
+                <!-- 太阳高度角检索 -->
+                <div v-if="activeSearchType === 'sunElevation'" class="search-panel">
+                  <div class="form-item">
+                    <label>太阳高度角大于等于 (度)</label>
+                    <el-input
+                      v-model="sunElevationInput"
+                      size="small"
+                      placeholder="输入最小太阳高度角"
+                      class="simple-input"
+                      @input="handleSunElevationInput"
+                      @keyup.enter="searchBySunElevation"
+                    >
+                    </el-input>
+                    </div>
+                  <el-button type="primary" @click="searchBySunElevation" class="search-btn-full">按太阳高度角查询</el-button>
+                </div>
+
+                <!-- 组合检索 -->
+                <div v-if="activeSearchType === 'combined'" class="search-panel">
+                  <div class="form-item">
+                    <label>云量大于等于 (%)</label>
+                    <el-input
+                      v-model="combinedCloudCoverInput"
+                      size="small"
+                      placeholder="输入最小云量"
+                      class="simple-input"
+                      @input="handleCombinedCloudCoverInput"
+                    >
+                    </el-input>
+                  </div>
+                  <div class="form-item">
+                    <label>开始日期</label>
+                    <el-date-picker
+                      v-model="combinedParams.startDate"
+                      type="date"
+                      placeholder="选择开始日期"
+                      format="YYYY-MM-DD"
+                      size="small"
+                      style="width: 100%"
+                      class="search-date-input"
+                    />
+                  </div>
+                  <div class="form-item">
+                    <label>结束日期</label>
+                    <el-date-picker
+                      v-model="combinedParams.endDate"
+                      type="date"
+                      placeholder="选择结束日期"
+                      format="YYYY-MM-DD"
+                      size="small"
+                      style="width: 100%"
+                      class="search-date-input"
+                    />
+                  </div>
+                  <div class="form-item">
+                    <label>太阳高度角大于等于 (度)</label>
+                    <el-input
+                      v-model="combinedSunElevationInput"
+                      size="small"
+                      placeholder="输入最小太阳高度角"
+                      class="simple-input"
+                      @input="handleCombinedSunElevationInput"
+                    >
+                    </el-input>
+                  </div>
+                  <el-button type="primary" @click="combinedSearch" class="search-btn-full">组合查询</el-button>
+                </div>
+                
+                <!-- 查询结果 -->
+                <div class="search-results-title">
+                  <div class="title">查询结果</div>
+                  <el-button type="primary" size="small" @click="refreshData" icon="Refresh">刷新</el-button>
+                </div>
+                
+                <div class="search-results">
+                      <el-scrollbar>
+                    <el-table
+                      :data="rasterDataList"
+                      style="width: 100%"
+                      size="small"
+                      :border="false"
+                      :show-header="true"
+                      :stripe="false"
+                      v-loading="loading"
+                    >
+                      <el-table-column prop="id" label="ID" width="50" />
+                      <el-table-column prop="name" label="名称" min-width="120" show-overflow-tooltip />
+                      <el-table-column label="操作" width="90" fixed="right">
+                        <template #default="scope">
+                          <el-button type="primary" size="small" @click="viewRasterData(scope.row)">查看</el-button>
+                        </template>
+                      </el-table-column>
+                    </el-table>
+                  </el-scrollbar>
+                </div>
+              </div>
+
+              <!-- 其他面板已移除，仅保留数据查询面板 -->
             </div>
-            <div class="form-item">
-              <label>开始日期</label>
-              <el-date-picker
-                v-model="combinedParams.startDate"
-                type="date"
-                placeholder="选择开始日期"
-                format="YYYY-MM-DD"
-                size="small"
-                style="width: 100%"
-                class="search-date-input"
-              />
-            </div>
-            <div class="form-item">
-              <label>结束日期</label>
-              <el-date-picker
-                v-model="combinedParams.endDate"
-                type="date"
-                placeholder="选择结束日期"
-                format="YYYY-MM-DD"
-                size="small"
-                style="width: 100%"
-                class="search-date-input"
-              />
-            </div>
-            <div class="form-item">
-              <label>太阳高度角大于等于 (度)</label>
-              <el-input
-                v-model="combinedSunElevationInput"
-                size="small"
-                placeholder="输入最小太阳高度角"
-                class="simple-input"
-                @input="handleCombinedSunElevationInput"
-              >
-              </el-input>
-            </div>
-            <el-button type="primary" @click="combinedSearch" class="search-btn-full">组合查询</el-button>
           </div>
           
-          <!-- 查询结果 -->
-          <div class="search-results-title">
-            <div class="title">查询结果</div>
-            <el-button type="primary" size="small" @click="refreshData" icon="Refresh">刷新</el-button>
-          </div>
-          
-          <div class="search-results">
-                <el-scrollbar>
-              <el-table
-                :data="rasterDataList"
-                style="width: 100%"
-                size="small"
-                :border="false"
-                :show-header="true"
-                :stripe="false"
-                v-loading="loading"
+          <!-- 右侧竖排标签区域 -->
+          <div class="sidebar-tabs-wrapper" v-if="showSidebarContent">
+            <div class="sidebar-tabs-vertical">
+              <div 
+                class="sidebar-tab-vertical active"
+                @click="closeRightPanel"
               >
-                <el-table-column prop="id" label="ID" width="50" />
-                <el-table-column prop="name" label="名称" min-width="120" show-overflow-tooltip />
-                <el-table-column label="操作" width="90" fixed="right">
-                  <template #default="scope">
-                    <el-button type="primary" size="small" @click="viewRasterData(scope.row)">查看</el-button>
-                  </template>
-                </el-table-column>
-              </el-table>
-            </el-scrollbar>
+                <el-icon class="tab-icon-vertical">
+                  <component :is="'Close'" />
+                </el-icon>
+                <span class="tab-text-vertical">{{ sidebarTabs[0].title }}</span>
+              </div>
+            </div>
           </div>
-        </div>
-
-
-      </div>
         </div>
       </div>
     </div>
@@ -235,7 +257,7 @@
 </template>
 
 <script setup>
-import { ref, onMounted, onBeforeUnmount, markRaw, computed, watch, reactive } from 'vue'
+import { ref, onMounted, onBeforeUnmount, markRaw, computed, watch, reactive, onUnmounted, nextTick } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
 import { useRoute, useRouter } from 'vue-router'
 import navMenu from './navMenu.vue'
@@ -252,7 +274,12 @@ import {
   View,
   Hide,
   Minus,
-  Plus
+  Plus,
+  DataAnalysis,
+  Files,
+  Edit,
+  Delete,
+  Setting
 } from '@element-plus/icons-vue'
 import axios from 'axios'
 import { useProjectStore } from '../stores/project'
@@ -331,7 +358,12 @@ const icons = {
   view: markRaw(View),
   hide: markRaw(Hide),
   minus: markRaw(Minus),
-  plus: markRaw(Plus)
+  plus: markRaw(Plus),
+  dataAnalysis: markRaw(DataAnalysis),
+  files: markRaw(Files),
+  edit: markRaw(Edit),
+  delete: markRaw(Delete),
+  setting: markRaw(Setting)
 }
 
 const mapContainer = ref(null)
@@ -1886,6 +1918,117 @@ const handleAddProcessedLayer = (layerInfo) => {
 };
 
 // 更新选中的行政区
+
+// 已经导入了必要的Vue函数
+
+// 添加到现有变量声明后
+const sidebarWidth = ref(280); // 默认宽度
+const minSidebarWidth = 200;  // 最小宽度
+const maxSidebarWidth = 500;  // 最大宽度
+const isResizing = ref(false);
+
+// 添加拖拽调整宽度的方法
+const startResizing = (e) => {
+  isResizing.value = true;
+  document.addEventListener('mousemove', handleMouseMove);
+  document.addEventListener('mouseup', stopResizing);
+  // 防止文本选择
+  document.body.style.userSelect = 'none';
+  // 改变鼠标样式
+  document.body.style.cursor = 'ew-resize';
+  // 阻止默认行为
+  e.preventDefault();
+};
+
+const handleMouseMove = (e) => {
+  if (!isResizing.value) return;
+  
+  // 计算新宽度 (窗口宽度 - 鼠标X坐标)
+  const newWidth = window.innerWidth - e.clientX;
+  
+  // 确保宽度在限制范围内
+  if (newWidth >= minSidebarWidth && newWidth <= maxSidebarWidth) {
+    sidebarWidth.value = newWidth;
+  }
+};
+
+const stopResizing = () => {
+  isResizing.value = false;
+  document.removeEventListener('mousemove', handleMouseMove);
+  document.removeEventListener('mouseup', stopResizing);
+  // 恢复默认样式
+  document.body.style.userSelect = '';
+  document.body.style.cursor = '';
+};
+
+// 组件卸载时清理事件监听
+onUnmounted(() => {
+  document.removeEventListener('mousemove', handleMouseMove);
+  document.removeEventListener('mouseup', stopResizing);
+});
+
+// 添加到现有变量声明后
+// 侧边栏内容显示状态
+const showSidebarContent = ref(true); // 当前激活的标签页，默认为控制面板
+
+// 侧边栏标签页配置
+const sidebarTabs = ref([
+  { id: 'controls', title: '数据查询', icon: 'Close', closable: true }
+]);
+
+// 监听左侧菜单点击事件
+onMounted(() => {
+  // 监听数据查询菜单点击事件
+  emitter.on(Events.REFRESH_CONTENT, (data) => {
+    if (data && data.id === 1) { // 数据查询按钮的ID为1
+      // 打开右侧面板
+      openRightPanel();
+    }
+  });
+});
+
+onBeforeUnmount(() => {
+  // 移除事件监听
+  emitter.off(Events.REFRESH_CONTENT);
+});
+
+// 空间分析面板
+const bufferDistance = ref(500);
+const overlayMethod = ref('intersect');
+const baseLayerVisible = ref(true);
+const roadLayerVisible = ref(true);
+const sanqiLayerVisible = ref(true);
+
+
+
+// 关闭右侧面板
+const closeRightPanel = () => {
+  // 关闭侧边栏
+  showSidebarContent.value = false;
+  
+  // 重置地图容器样式，确保它占据整个区域
+  nextTick(() => {
+    const mapContent = document.querySelector('.map-content');
+    if (mapContent) {
+      mapContent.style.width = '100%';
+    }
+  });
+};
+
+// 打开右侧面板
+const openRightPanel = () => {
+  // 显示侧边栏
+  showSidebarContent.value = true;
+  
+  // 调整地图容器宽度，为侧边栏腾出空间
+  nextTick(() => {
+    const mapContent = document.querySelector('.map-content');
+    if (mapContent) {
+      // 保持地图内容宽度适应
+      mapContent.style.width = `calc(100% - ${sidebarWidth.value}px)`;
+    }
+  });
+};
 </script>
 
 <style scoped>
@@ -1916,6 +2059,7 @@ const handleAddProcessedLayer = (layerInfo) => {
   width: 100%;
   height: 100%;
   background: #2c2c2c;
+  transition: width 0.3s ease;
 }
 
 .left-sidebar {
@@ -1943,27 +2087,49 @@ const handleAddProcessedLayer = (layerInfo) => {
   right: 0;
   bottom: 0;
   z-index: 90;
-  pointer-events: none; /* 防止拦截地图事件 */
-  transition: all 0.3s ease;
+  transition: width 0.3s ease, opacity 0.3s ease, visibility 0.3s ease;
   display: flex;
-  flex-direction: column;
-  width: 280px; /* 减小宽度 */
+  position: relative;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.sidebar-content {
+  width: calc(100% - 50px); /* 减去标签区域的宽度 */
+  height: 100%;
+  position: relative;
+}
+
+.sidebar-resizer {
+  position: absolute;
+  top: 0;
+  left: 0;
+  bottom: 0;
+  width: 8px;
+  background-color: transparent;
+  cursor: ew-resize;
+  z-index: 91;
+  pointer-events: auto;
+}
+
+.sidebar-resizer:hover,
+.sidebar-resizer:active {
+  background-color: rgba(64, 158, 255, 0.3); /* 悬停时显示蓝色指示条 */
 }
 
 .control-panel {
   width: 100%;
-  background-color: #1a1a1a; /* 完全不透明 */
-  color: #fff;
-  pointer-events: auto; /* 恢复指针事件 */
-  overflow-y: hidden; /* 改为hidden避免滚动条 */
-  padding: 20px 15px; /* 减小内边距 */
   height: 100%;
+  background-color: #1a1a1a;
+  color: #fff;
+  pointer-events: auto;
+  overflow-y: auto;
+  padding: 20px 15px;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
-  gap: 15px; /* 减小间距 */
-  border-radius: 0;
+  gap: 15px;
   box-shadow: -2px 0 10px rgba(0, 0, 0, 0.5);
+  box-sizing: border-box;
 }
 
 .control-panel-section:first-child {
@@ -2805,5 +2971,300 @@ const handleAddProcessedLayer = (layerInfo) => {
   box-shadow: none !important;
   border: none;
   border-radius: 4px;
+}
+
+.sidebar-tabs {
+  display: flex;
+  height: 40px;
+  background: #232323;
+  border-bottom: 1px solid #333;
+  pointer-events: auto;
+  position: relative;
+  z-index: 92;
+}
+
+.sidebar-tab {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #b8b8b8;
+  cursor: pointer;
+  position: relative;
+  transition: all 0.3s;
+  padding: 6px 0;
+}
+
+.sidebar-tab:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.05);
+}
+
+.sidebar-tab.active {
+  color: #409EFF;
+  background-color: #1a1a1a;
+}
+
+.sidebar-tab.active::after {
+  content: '';
+  position: absolute;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 40%;
+  height: 3px;
+  background: #409EFF;
+  border-radius: 3px 3px 0 0;
+}
+
+.tab-icon {
+  font-size: 16px;
+  margin-bottom: 2px;
+}
+
+.tab-text {
+  font-size: 12px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.analysis-panel {
+  padding: 20px;
+  background-color: #1a1a1a;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.analysis-tools {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 20px;
+}
+
+.analysis-tool-card {
+  flex: 1;
+  background-color: #2c2c2c;
+  border-radius: 4px;
+  padding: 20px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.5);
+}
+
+.card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 20px;
+}
+
+.layer-panel {
+  padding: 20px;
+  background-color: #1a1a1a;
+  border-radius: 4px;
+  margin-bottom: 20px;
+}
+
+.layer-list {
+  margin-top: 20px;
+}
+
+.layer-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.layer-name {
+  flex: 1;
+}
+
+.layer-actions {
+  display: flex;
+  gap: 10px;
+}
+
+.add-layer-btn {
+  background-color: #409EFF;
+  border-color: #409EFF;
+  color: #fff;
+  padding: 8px 16px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.add-layer-btn:hover {
+  background-color: #66b1ff;
+  border-color: #66b1ff;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
+}
+
+/* 自定义 Element Plus 组件在暗色主题下的样式 */
+:deep(.el-collapse) {
+  border: none;
+  background-color: transparent;
+}
+
+:deep(.el-collapse-item__header) {
+  background-color: #232323;
+  color: #e6e6e6;
+  border-bottom: 1px solid #333;
+  font-size: 14px;
+  font-weight: bold;
+  height: 40px;
+  line-height: 40px;
+}
+
+:deep(.el-collapse-item__content) {
+  background-color: #1a1a1a;
+  color: #b8b8b8;
+  padding: 10px;
+}
+
+:deep(.el-card) {
+  background-color: #232323;
+  border: none;
+  color: #e6e6e6;
+}
+
+:deep(.el-card__header) {
+  padding: 12px 15px;
+  border-bottom: 1px solid #333;
+}
+
+:deep(.el-card__body) {
+  padding: 12px 15px;
+  color: #b8b8b8;
+}
+
+:deep(.el-input__wrapper),
+:deep(.el-input-number__wrapper),
+:deep(.el-select__wrapper) {
+  background-color: #1a1a1a;
+  box-shadow: 0 0 0 1px #444 inset;
+}
+
+:deep(.el-input__inner),
+:deep(.el-input-number__inner),
+:deep(.el-select__input) {
+  color: #e6e6e6;
+}
+
+:deep(.el-checkbox__label) {
+  color: #e6e6e6;
+}
+
+:deep(.el-checkbox__input.is-checked .el-checkbox__inner) {
+  background-color: #409EFF;
+  border-color: #409EFF;
+}
+
+.sidebar-tabs-vertical {
+  height: 100%;
+  background-color: #232323;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 0; /* 移除顶部间距 */
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.2);
+  width: 50px; /* 匹配新的宽度 */
+}
+
+.sidebar-tab-vertical {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  color: #b8b8b8;
+  cursor: pointer;
+  transition: all 0.3s;
+  padding: 20px 0;
+  position: relative;
+  width: 100%;
+  height: 120px; /* 增加标签高度 */
+}
+
+.sidebar-tab-vertical:hover {
+  color: #fff;
+  background-color: rgba(255, 255, 255, 0.1);
+}
+
+.sidebar-tab-vertical.active {
+  color: #409EFF;
+  background-color: #1a1a1a;
+}
+
+.sidebar-tab-vertical.active::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 60%;
+  background: #409EFF;
+  border-radius: 0 2px 2px 0;
+}
+
+.tab-icon-vertical {
+  font-size: 22px; /* 增大图标尺寸 */
+  margin-bottom: 10px; /* 增加与文字的距离 */
+}
+
+.tab-text-vertical {
+  font-size: 14px; /* 增大字体 */
+  writing-mode: vertical-rl; /* 从上到下排列 */
+  transform: none;
+  white-space: nowrap;
+  line-height: 1.2; /* 增加行高 */
+  letter-spacing: 2px; /* 增加字符间距 */
+  margin-top: 10px; /* 增加与图标的间距 */
+}
+
+.sidebar-tabs-wrapper {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: 50px; /* 增加宽度 */
+  pointer-events: auto;
+  z-index: 92;
+  display: flex;
+  justify-content: center;
+}
+
+/* 特殊样式 - 搜索/关闭按钮 */
+.sidebar-tab-vertical .tab-icon-vertical {
+  transition: transform 0.3s;
+}
+
+.sidebar-tab-vertical:hover .tab-icon-vertical {
+  transform: scale(1.2);
+}
+
+/* 激活状态下显示关闭图标 */
+.sidebar-tab-vertical.active .tab-icon-vertical {
+  color: #f56c6c;
+}
+
+/* 非激活状态下显示搜索图标 */
+.sidebar-tab-vertical:not(.active) .tab-icon-vertical {
+  color: #409EFF;
+}
+
+.tab-text-vertical {
+  font-size: 14px; /* 增大字体 */
+  writing-mode: vertical-rl; /* 从上到下排列 */
+}
+
+/* 当侧边栏关闭时，确保地图占据整个区域 */
+.amap-container .map-content {
+  width: 100%;
+  height: 100%;
+  background: #2c2c2c;
+  transition: all 0.3s ease;
 }
 </style> 
