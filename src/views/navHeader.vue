@@ -131,15 +131,21 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted, onUnmounted, reactive } from 'vue'
-import { Bell, QuestionFilled, CirclePlus, User, Setting, SwitchButton, Close } from '@element-plus/icons-vue'
+import { ref, computed, onMounted, onUnmounted, reactive, inject } from 'vue'
+import { Bell, QuestionFilled, CirclePlus, User, Setting, SwitchButton, Close, Lock } from '@element-plus/icons-vue'
 import { useRouter, useRoute } from 'vue-router'
 import { ElMessageBox, ElMessage } from 'element-plus'
+import apiConfig from '@/config/api'
+import { emitter, Events } from '@/utils/eventBus'
+import { useUserStore } from '@/stores/users'
 // import LoginModal from '@/components/LoginModal.vue'
 // import mySwitch, { flag } from '@/utils/mySwitch' // 不再导入 mySwitch
 
 const router = useRouter()
 const route = useRoute()
+const userStore = useUserStore()
+// 获取事件总线
+const eventBus = inject('eventBus')
 
 // 登录弹窗控制
 const loginModalVisible = ref(false)
@@ -154,6 +160,11 @@ const handleShowLoginModal = (event) => {
 onMounted(() => {
   window.addEventListener('show-login-modal', handleShowLoginModal)
   
+  // 监听事件总线的登录弹窗事件
+  emitter.on(Events.SHOW_LOGIN_DIALOG, () => {
+    showLoginModal('login')
+  })
+  
   // 检查URL参数是否需要显示登录弹窗
   if (route.query.showLogin === 'true') {
     showLoginModal('login')
@@ -167,11 +178,39 @@ onMounted(() => {
 onUnmounted(() => {
   window.removeEventListener('show-login-modal', handleShowLoginModal)
   document.removeEventListener('click', handleOutsideClick)
+  // 移除事件监听
+  emitter.off(Events.SHOW_LOGIN_DIALOG)
 })
+
+// 检查用户是否已登录
+const checkUserLogin = () => {
+  const token = window.sessionStorage.getItem('token')
+  const userInfoStr = window.sessionStorage.getItem('userInfo')
+  
+  if (!token || !userInfoStr) {
+    return false
+  }
+  
+  try {
+    const userInfo = JSON.parse(userInfoStr)
+    return !!userInfo && !!userInfo.username
+  } catch (e) {
+    console.error('解析用户信息失败:', e)
+    return false
+  }
+}
 
 // 显示登录弹窗
 const showLoginModal = (tab) => {
   console.log('点击了登录/注册按钮，tab:', tab)
+  
+  // 检查用户是否已登录
+  if (checkUserLogin()) {
+    console.log('用户已登录，无需显示登录弹窗')
+    ElMessage.info('您已登录')
+    return
+  }
+  
   console.log('当前登录状态:', isLoggedIn.value)
   
   loginModalTab.value = tab
@@ -255,7 +294,7 @@ const handleRegisterSuccess = () => {
 }
 
 const isLoggedIn = computed(() => {
-  return window.sessionStorage.getItem('token') !== null
+  return userStore.isAuthenticated()
 })
 
 const handleClick = (action) => {
@@ -275,6 +314,9 @@ const handleClick = (action) => {
       // 清除登录信息
       window.sessionStorage.removeItem('token')
       window.sessionStorage.removeItem('userInfo')
+      
+      // 清除 userStore 中的状态
+      userStore.clearUserInfo()
       
       // 使用ElMessage显示退出成功提示
       ElMessage({
@@ -315,39 +357,97 @@ const tempRegisterForm = reactive({
   confirmPassword: ''
 })
 
-// 临时登录方法
-const tempLogin = () => {
+// 实际登录方法
+const tempLogin = async () => {
   if (!tempLoginForm.username || !tempLoginForm.password) {
     ElMessage.warning('请输入用户名和密码')
     return
   }
   
-  // 模拟登录成功
-  sessionStorage.setItem('token', 'user-authenticated')
-  sessionStorage.setItem('userInfo', JSON.stringify({ username: tempLoginForm.username }))
+  // 验证用户名格式
+  if (!/^[a-zA-Z0-9]+$/.test(tempLoginForm.username)) {
+    ElMessage.warning('用户名必须为字母和数字的组合')
+    return
+  }
   
-  loginModalVisible.value = false
-  ElMessage.success('登录成功')
-  
-  // 检查是否有重定向路径
-  const redirectPath = sessionStorage.getItem('redirectPath')
-  if (redirectPath) {
-    sessionStorage.removeItem('redirectPath') // 清除重定向路径
-    setTimeout(() => {
-      router.push(redirectPath) // 重定向到目标页面
-    }, 300)
-  } else {
-    // 没有重定向路径，刷新页面以更新状态
-    setTimeout(() => {
-      window.location.reload()
-    }, 300)
+  try {
+    // 显示加载状态
+    const loadingInstance = ElMessage({
+      type: 'info',
+      message: '登录中...',
+      duration: 0
+    })
+    
+         // 调用后端登录API
+     const response = await fetch(apiConfig.user.login, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username: tempLoginForm.username,
+        password: tempLoginForm.password
+      })
+    })
+    
+    // 关闭加载提示
+    loadingInstance.close()
+    
+    const result = await response.json()
+    console.log('登录响应:', result)
+    
+    if (result.code === "0" && result.data) {
+      // 登录成功，保存用户信息
+      const tokenValue = `user-${result.data.id || 'authenticated'}`
+      sessionStorage.setItem('token', tokenValue)
+      sessionStorage.setItem('userInfo', JSON.stringify(result.data))
+      
+      // 更新 userStore 中的状态
+      userStore.setToken(tokenValue)
+      userStore.setUserInfo(result.data)
+      
+      loginModalVisible.value = false
+      ElMessage.success(result.msg || '登录成功')
+      
+      // 检查是否有重定向路径
+      const redirectPath = sessionStorage.getItem('redirectPath')
+      if (redirectPath) {
+        sessionStorage.removeItem('redirectPath') // 清除重定向路径
+        setTimeout(() => {
+          router.push(redirectPath) // 重定向到目标页面
+        }, 300)
+      } else {
+        // 没有重定向路径，刷新页面以更新状态
+        setTimeout(() => {
+          window.location.reload()
+        }, 300)
+      }
+    } else {
+      // 登录失败
+      ElMessage.error(result.msg || '账号或密码错误')
+    }
+  } catch (error) {
+    console.error('登录请求出错:', error)
+    ElMessage.error('登录失败，请检查网络连接或联系管理员')
   }
 }
 
-// 临时注册方法
-const tempRegister = () => {
+// 实际注册方法
+const tempRegister = async () => {
   if (!tempRegisterForm.username || !tempRegisterForm.password) {
     ElMessage.warning('请输入用户名和密码')
+    return
+  }
+  
+  // 验证用户名格式
+  if (!/^[a-zA-Z0-9]+$/.test(tempRegisterForm.username)) {
+    ElMessage.warning('用户名必须为字母和数字的组合')
+    return
+  }
+  
+  // 验证密码长度
+  if (tempRegisterForm.password.length < 6) {
+    ElMessage.warning('密码长度不能少于6位')
     return
   }
   
@@ -356,11 +456,48 @@ const tempRegister = () => {
     return
   }
   
-  // 模拟注册成功
-  ElMessage.success('注册成功')
-  switchToLogin()
-  tempLoginForm.username = tempRegisterForm.username
-  tempLoginForm.password = ''
+  try {
+    // 显示加载状态
+    const loadingInstance = ElMessage({
+      type: 'info',
+      message: '注册中...',
+      duration: 0
+    })
+    
+         // 调用后端注册API
+     const response = await fetch(apiConfig.user.register, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json'
+      },
+      body: JSON.stringify({
+        username: tempRegisterForm.username,
+        password: tempRegisterForm.password
+      })
+    })
+    
+    // 关闭加载提示
+    loadingInstance.close()
+    
+    const result = await response.json()
+    console.log('注册响应:', result)
+    
+    if (result.code === "0" && result.data) {
+      // 注册成功
+      ElMessage.success(result.msg || '注册成功')
+      
+      // 切换到登录页面
+      switchToLogin()
+      tempLoginForm.username = tempRegisterForm.username
+      tempLoginForm.password = ''
+    } else {
+      // 注册失败
+      ElMessage.error(result.msg || '用户名格式不正确或已存在')
+    }
+  } catch (error) {
+    console.error('注册请求出错:', error)
+    ElMessage.error('注册失败，请检查网络连接或联系管理员')
+  }
 }
 </script>
 

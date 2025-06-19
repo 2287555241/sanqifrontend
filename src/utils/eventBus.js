@@ -14,5 +14,6 @@ export { emitter, activeView }
 export const Events = {
   CHANGE_VIEW: 'change-view',
   CLEAR_MAP: 'clear-map',
-  REFRESH_CONTENT: 'refresh-content'
+  REFRESH_CONTENT: 'refresh-content',
+  SHOW_LOGIN_DIALOG: 'show-login-dialog'
 } 

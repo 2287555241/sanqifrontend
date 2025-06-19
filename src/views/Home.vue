@@ -82,11 +82,13 @@ import {
   Crop, 
   ArrowRight
 } from '@element-plus/icons-vue'
-import { useRouter } from 'vue-router'
+import { useRouter, useRoute } from 'vue-router'
 import { ElMessage } from 'element-plus'
 import { useUserStore } from '../stores/users'
+import { emitter, Events } from '@/utils/eventBus'
 
 const router = useRouter()
+const route = useRoute()
 const userStore = useUserStore()
 
 // 滚动状态
@@ -102,6 +104,14 @@ onMounted(() => {
   initMap()
   // 添加滚动事件监听
   window.addEventListener('scroll', handleScroll)
+  
+  // 检查是否需要显示登录弹窗
+  if (route.query.showLogin === 'true') {
+    // 使用事件总线触发登录弹窗显示
+    setTimeout(() => {
+      emitter.emit(Events.SHOW_LOGIN_DIALOG)
+    }, 500)
+  }
 })
 
 onUnmounted(() => {
@@ -230,13 +240,15 @@ const feedbacks = ref([
 ])
 
 const handleStart = () => {
-  // 检查是否已登录
-  if (!userStore.token || userStore.token !== 'user-authenticated') {
+  // 检查是否已登录，使用userStore的isAuthenticated方法
+  if (!userStore.isAuthenticated()) {
     ElMessage({
       message: '请先登录后再使用系统',
       type: 'warning',
       duration: 2000
     })
+    // 显示登录弹窗
+    emitter.emit(Events.SHOW_LOGIN_DIALOG)
     return
   }
   router.push('/index')

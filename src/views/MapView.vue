@@ -210,10 +210,9 @@
               >
                 <el-table-column prop="id" label="ID" width="50" />
                 <el-table-column prop="name" label="名称" min-width="120" show-overflow-tooltip />
-                <el-table-column label="操作" width="110" fixed="right">
+                <el-table-column label="操作" width="90" fixed="right">
                   <template #default="scope">
                     <el-button type="primary" size="small" @click="viewRasterData(scope.row)">查看</el-button>
-                    <el-button type="danger" size="small" @click="deleteRasterData(scope.row)">删除</el-button>
                   </template>
                 </el-table-column>
               </el-table>
@@ -228,36 +227,20 @@
     </div>
     
     <!-- 数据管理对话框 -->
-    <div 
-      v-if="dataManagementDialogVisible"
-      class="data-management-dialog"
-      :style="{
-        position: 'fixed',
-        top: dialogPosition.y + 'px',
-        left: dialogPosition.x + 'px',
-        cursor: isDragDisabled ? 'default' : 'move'
-      }"
-      @mousedown="handleMouseDown"
-      @mousemove="handleMouseMove"
-      @mouseup="handleMouseUp"
-      @mouseleave="handleMouseUp"
-    >
-      <DataManagement 
-        @close="closeDataManagement" 
-        @disableDrag="setDragDisabled(true)"
-        @enableDrag="setDragDisabled(false)"
-      />
-    </div>
+    <DataManagementDialog
+      :visible="dataManagementDialogVisible"
+      @close="closeDataManagement"
+    />
   </div>
 </template>
 
 <script setup>
 import { ref, onMounted, onBeforeUnmount, markRaw, computed, watch, reactive } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { useRoute } from 'vue-router'
+import { useRoute, useRouter } from 'vue-router'
 import navMenu from './navMenu.vue'
 import indexHeader from './indexHeader.vue'
-import DataManagement from './DataManagement.vue'
+import DataManagementDialog from '../components/DataManagementDialog.vue'
 import { 
   Location, 
   Search, 
@@ -279,8 +262,9 @@ import apiConfig from '../config/api'
 // 不使用 AMap Loader，改为直接加载
 // import AMapLoader from '@amap/amap-jsapi-loader'
 
-// 获取路由参数
+// 获取路由参数和路由器
 const route = useRoute()
+const router = useRouter()
 const isOnlyMapMode = computed(() => route.query.onlyMap === 'true')
 const shouldFocusYunnan = computed(() => route.query.yunnanView === 'true')
 
@@ -289,13 +273,6 @@ const uiStore = useUIStore()
 
 // 数据管理对话框状态
 const dataManagementDialogVisible = ref(false)
-const isDragDisabled = ref(false)
-const isDragging = ref(false)
-const dialogPosition = ref({ 
-  x: 250,
-  y: 10
-})
-const dragOffset = ref({ x: 0, y: 0 })
 
 // 处理打开数据管理
 const handleOpenDataManagement = () => {
@@ -305,41 +282,6 @@ const handleOpenDataManagement = () => {
 // 关闭数据管理
 const closeDataManagement = () => {
   dataManagementDialogVisible.value = false
-}
-
-// 设置拖动状态
-const setDragDisabled = (disabled) => {
-  isDragDisabled.value = disabled
-}
-
-// 拖动相关函数
-const handleMouseDown = (e) => {
-  if (e.target.closest('.el-table') || e.target.closest('.el-button')) {
-    return
-  }
-  
-  if (isDragDisabled.value) {
-    return
-  }
-
-  isDragging.value = true
-  dragOffset.value = {
-    x: e.clientX - dialogPosition.value.x,
-    y: e.clientY - dialogPosition.value.y
-  }
-}
-
-const handleMouseMove = (e) => {
-  if (!isDragging.value || isDragDisabled.value) return
-  
-  dialogPosition.value = {
-    x: e.clientX - dragOffset.value.x,
-    y: e.clientY - dragOffset.value.y
-  }
-}
-
-const handleMouseUp = () => {
-  isDragging.value = false
 }
 
 // 监听地图模式变化
@@ -1685,10 +1627,16 @@ const refreshData = async () => {
   }
 }
 
-// 查看栅格数据
+// 查看栅格数据 - 打开侧边栏中数据管理2对应的DataManagementDialog对话框
 const viewRasterData = (data) => {
-  ElMessage.info(`查看栅格数据: ${data.name}`)
-  // 这里可以添加查看栅格数据的逻辑
+  ElMessage.info(`正在查看栅格数据: ${data.name}`)
+  
+  // 模拟点击侧边栏中的"数据管理2"按钮
+  // 打开DataManagementDialog对话框（与侧边栏中的"数据管理2"按钮行为一致）
+  dataManagementDialogVisible.value = true
+  
+  // 通过事件总线发送消息，告知DataManagementDialog组件切换到用户数据标签页
+  emitter.emit('switch-to-user-data')
 }
 
 // 删除栅格数据

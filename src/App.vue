@@ -9,13 +9,31 @@
 </template>
 
 <script setup>
-import { computed } from 'vue'
+import { computed, onMounted } from 'vue'
 import { useProjectStore } from './stores/project'
-import { useRoute } from 'vue-router'
+import { useUserStore } from './stores/users'
+import { useRoute, useRouter } from 'vue-router'
 
 const projectStore = useProjectStore()
+const userStore = useUserStore()
 const currentProject = computed(() => projectStore.getCurrentProject())
 const route = useRoute()
+const router = useRouter()
+
+// 在组件挂载时检查认证状态
+onMounted(() => {
+  // 初始化用户信息
+  const isValid = userStore.initUserInfo()
+  
+  // 检查当前路由是否需要认证
+  const requiresAuth = route.meta.requiresAuth
+  
+  // 如果需要认证但认证无效，跳转到主页并显示登录弹窗
+  if (requiresAuth && !userStore.isAuthenticated()) {
+    console.log('App.vue: 需要认证但无有效认证，跳转到主页并显示登录弹窗')
+    router.push({ path: '/main', query: { showLogin: 'true' } })
+  }
+})
 
 // 只有在有项目且是从创建项目后的情况下才显示项目名称
 const shouldShowProjectName = computed(() => {

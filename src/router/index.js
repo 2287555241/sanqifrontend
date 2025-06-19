@@ -12,14 +12,7 @@ const routes = [
     path: '/',
     redirect: '/main' // 默认重定向到 main 页面
   },
-  {
-    path: '/login',
-    name: 'login',
-    component: () => import(/* webpackChunkName: "login" */ '@/views/login.vue'),
-    meta: {
-      requiresAuth: false // 不需要登录验证
-    }
-  },
+  // 登录页面已移除，使用主页面的登录弹窗替代
   {
     path: '/index',
     name: 'index',
@@ -48,7 +41,7 @@ const routes = [
     name: 'main',
     component: Home,
     meta: {
-      requiresAuth: false // 不需要登录验证
+      requiresAuth: false // 不需要登录验证，允许所有用户访问主页
     }
   },
   {
@@ -147,14 +140,17 @@ const router = createRouter({
   }
 })
 
-// 路由守卫（保持原有逻辑）
+// 路由守卫（使用登录弹窗替代登录页面）
 router.beforeEach((to, from, next) => {
   const token = window.sessionStorage.getItem('token')
+  const userInfo = window.sessionStorage.getItem('userInfo')
   
-  // 需要认证但无 token，跳转到首页并显示登录弹窗
-  if (to.meta.requiresAuth && !token) {
+  // 需要认证但无 token，跳转到主页并显示登录弹窗
+  if (to.meta.requiresAuth && (!token || !userInfo)) {
+    console.log('需要认证但无token，跳转到主页并显示登录弹窗')
     // 将目标路径保存在会话存储中，以便登录后重定向
     window.sessionStorage.setItem('redirectPath', to.fullPath)
+    
     // 跳转到主页，并通过查询参数触发登录弹窗
     next({ path: '/main', query: { showLogin: 'true' } })
   } 

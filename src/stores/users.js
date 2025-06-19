@@ -32,11 +32,39 @@ export const useUserStore = defineStore('user', () => {
     
     if (storedToken) {
       token.value = storedToken
+    } else {
+      // 如果没有token，确保清除可能存在的用户信息
+      clearUserInfo()
+      return false
     }
     
     if (storedUserInfo) {
-      userInfo.value = JSON.parse(storedUserInfo)
+      try {
+        const parsedInfo = JSON.parse(storedUserInfo)
+        // 验证用户信息的有效性
+        if (parsedInfo && parsedInfo.id) {
+          userInfo.value = parsedInfo
+          return true
+        } else {
+          console.warn('存储的用户信息无效')
+          clearUserInfo()
+          return false
+        }
+      } catch (e) {
+        console.error('解析用户信息失败:', e)
+        clearUserInfo()
+        return false
+      }
+    } else {
+      // 如果有token但没有用户信息，也认为是无效的
+      clearUserInfo()
+      return false
     }
+  }
+  
+  // 检查用户是否已认证
+  const isAuthenticated = () => {
+    return !!token.value && !!userInfo.value && !!userInfo.value.id
   }
   
   return {
@@ -45,6 +73,7 @@ export const useUserStore = defineStore('user', () => {
     setToken,
     setUserInfo,
     clearUserInfo,
-    initUserInfo
+    initUserInfo,
+    isAuthenticated
   }
 })

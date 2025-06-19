@@ -13,21 +13,16 @@
             style="width: 100%"
             border
             stripe
-            max-height="600px"
+            height="450px"
+            table-layout="auto"
           >
             <el-table-column type="selection" width="55" />
-            <el-table-column prop="id" label="ID" width="70" />
-            <el-table-column prop="name" label="名称" min-width="150" />
-            <el-table-column prop="type" label="类型" width="100" />
-            <el-table-column prop="size" label="大小" width="100" />
-            <el-table-column prop="createTime" label="创建时间" width="180" />
-            <el-table-column label="操作" fixed="right" width="200">
-              <template #default>
-                <el-button type="primary" size="small">查看</el-button>
-                <el-button type="success" size="small">导入</el-button>
-                <el-button type="danger" size="small">删除</el-button>
-              </template>
-            </el-table-column>
+            <el-table-column prop="id" label="ID" width="100" />
+            <el-table-column prop="name" label="名称" min-width="300" />
+            <el-table-column prop="type" label="类型" width="150" />
+            <el-table-column prop="size" label="大小" width="150" />
+            <el-table-column prop="createTime" label="创建时间" width="200" />
+
           </el-table>
           
           <div class="table-footer">
@@ -51,52 +46,52 @@
             style="width: 100%"
             border
             stripe
-            max-height="600px"
+            height="450px"
+            table-layout="auto" 
             v-loading="userLoading"
+            @selection-change="handleSelectionChange"
           >
             <el-table-column type="selection" width="55" />
-            <el-table-column prop="id" label="ID" width="70" />
-            <el-table-column prop="name" label="名称" min-width="150" />
-            <el-table-column prop="description" label="描述" min-width="150">
+            <el-table-column prop="id" label="ID" width="90" />
+            <el-table-column prop="name" label="名称" min-width="250" />
+            <el-table-column prop="description" label="描述" min-width="200">
               <template #default="scope">
                 {{ scope.row.description || '-' }}
               </template>
             </el-table-column>
-            <el-table-column prop="rasterType" label="类型" width="80">
+            <el-table-column prop="rasterType" label="类型" width="120">
               <template #default="scope">
                 {{ scope.row.rasterType || '栅格' }}
               </template>
             </el-table-column>
-            <el-table-column prop="bands" label="波段数" width="80">
+            <el-table-column prop="bands" label="波段数" width="100">
               <template #default="scope">
                 {{ scope.row.bands || '-' }}
               </template>
             </el-table-column>
-            <el-table-column prop="resolution" label="分辨率" width="80">
+            <el-table-column prop="resolution" label="分辨率" width="100">
               <template #default="scope">
                 {{ scope.row.resolution || '-' }}
               </template>
             </el-table-column>
-            <el-table-column prop="cloudCover" label="云量 (%)" width="100">
+            <el-table-column prop="cloudCover" label="云量 (%)" width="120">
               <template #default="scope">
                 {{ scope.row.cloudCover !== null ? scope.row.cloudCover : '-' }}
               </template>
             </el-table-column>
-            <el-table-column prop="acquisitionDate" label="采集日期" width="100">
+            <el-table-column prop="acquisitionDate" label="采集日期" width="130">
               <template #default="scope">
                 {{ scope.row.acquisitionDate || '-' }}
               </template>
             </el-table-column>
-            <el-table-column prop="sunElevation" label="太阳高度角" width="100">
+            <el-table-column prop="sunElevation" label="太阳高度角" width="120">
               <template #default="scope">
                 {{ scope.row.sunElevation !== null ? scope.row.sunElevation : '-' }}
               </template>
             </el-table-column>
-            <el-table-column label="操作" fixed="right" width="200">
+            <el-table-column label="操作" width="150" fixed="right">
               <template #default="scope">
-                <el-button type="primary" size="small" @click="viewData(scope.row)">查看</el-button>
-                <el-button type="success" size="small" @click="importData(scope.row)">导入</el-button>
-                <el-button type="danger" size="small" @click="deleteData(scope.row)">删除</el-button>
+                <el-button type="primary" size="small" @click="handleEdit(scope.row)">编辑</el-button>
               </template>
             </el-table-column>
             <template #empty>
@@ -112,6 +107,7 @@
           <div class="table-footer">
             <div class="batch-actions">
               <el-button type="primary" @click="showRasterImportDialog">栅格数据导入</el-button>
+              <el-button type="danger" @click="batchDelete" :disabled="selectedRows.length === 0">批量删除</el-button>
             </div>
             
             <el-pagination
@@ -194,15 +190,60 @@
         </span>
       </template>
     </el-dialog>
+    
+    <!-- 编辑数据对话框 -->
+    <el-dialog
+      v-model="editDialogVisible"
+      title="编辑数据"
+      width="600px"
+      destroy-on-close
+    >
+      <div class="edit-container">
+        <el-form label-position="top">
+          <el-form-item label="名称">
+            <el-input v-model="editForm.name" placeholder="输入数据名称"></el-input>
+          </el-form-item>
+          <el-form-item label="描述">
+            <el-input 
+              type="textarea" 
+              v-model="editForm.description" 
+              :rows="4" 
+              placeholder="输入描述信息">
+            </el-input>
+          </el-form-item>
+        </el-form>
+        
+        <div class="operation-options">
+          <el-divider>操作选项</el-divider>
+          <el-row>
+            <el-col :span="12">
+              <el-checkbox v-model="editForm.delete">删除此数据</el-checkbox>
+            </el-col>
+          </el-row>
+        </div>
+      </div>
+      <template #footer>
+        <span class="dialog-footer">
+          <el-button @click="editDialogVisible = false">取消</el-button>
+          <el-button type="danger" @click="confirmDelete" v-if="editForm.delete">
+            确认删除
+          </el-button>
+          <el-button type="primary" @click="submitEdit" v-else :loading="editLoading">
+            保存修改
+          </el-button>
+        </span>
+      </template>
+    </el-dialog>
   </div>
 </template>
 
 <script setup>
-import { ref, onMounted, watch } from 'vue'
-import { ElMessage } from 'element-plus'
+import { ref, onMounted, watch, onBeforeUnmount } from 'vue'
+import { ElMessage, ElMessageBox } from 'element-plus'
 import axios from 'axios'
 import { DocumentDelete } from '@element-plus/icons-vue'
 import apiConfig from '@/config/api'
+import { emitter, Events } from '@/utils/eventBus'
 
 // 定义props
 const props = defineProps({
@@ -225,12 +266,26 @@ watch(() => props.visible, (newVal) => {
 // 当前选中的标签页
 const activeTab = ref('system')
 
-// 组件挂载时加载数据
+// 处理切换到用户数据标签页的事件
+const handleSwitchToUserData = () => {
+  console.log('切换到用户数据标签页')
+  activeTab.value = 'user'
+}
+
+// 组件挂载时加载数据和注册事件监听
 onMounted(async () => {
   const isConnected = await testConnection()
   if (isConnected) {
     fetchUserData()
   }
+  
+  // 注册事件监听，当收到切换到用户数据标签页的事件时执行
+  emitter.on('switch-to-user-data', handleSwitchToUserData)
+})
+
+// 组件卸载前清理事件监听
+onBeforeUnmount(() => {
+  emitter.off('switch-to-user-data', handleSwitchToUserData)
 })
 
 // 栅格数据导入相关
@@ -246,6 +301,7 @@ const rasterImportLoading = ref(false)
 const userData = ref([])
 const userLoading = ref(false)
 const loadingError = ref(null)
+const selectedRows = ref([])
 
 // 显示栅格数据导入对话框
 const showRasterImportDialog = () => {
@@ -386,6 +442,8 @@ const deleteData = async (data) => {
     
     if (response.data && response.data.success) {
       ElMessage.success(`已删除数据: ${data.name}`)
+      // 关闭编辑对话框（如果是从编辑对话框发起的删除操作）
+      editDialogVisible.value = false
       // 重新获取数据列表
       fetchUserData()
     } else {
@@ -486,12 +544,117 @@ const testConnection = async () => {
     return false
   }
 }
+
+// 编辑数据相关
+const editDialogVisible = ref(false)
+const editForm = ref({})
+const editLoading = ref(false)
+
+// 编辑数据
+const handleEdit = (data) => {
+  editForm.value = {
+    id: data.id,
+    name: data.name,
+    description: data.description
+  }
+  editDialogVisible.value = true
+}
+
+// 提交编辑
+const submitEdit = async () => {
+  editLoading.value = true
+  try {
+    // 发送请求更新数据
+    const response = await axios.put(apiConfig.raster.update(editForm.value.id), editForm.value)
+    
+    if (response.data && response.data.success) {
+      ElMessage.success('数据更新成功')
+      editDialogVisible.value = false
+      fetchUserData()
+    } else {
+      ElMessage.error(`更新失败: ${response.data.error || '未知错误'}`)
+    }
+  } catch (error) {
+    console.error('更新数据失败:', error)
+    ElMessage.error(`更新失败: ${error.message || '未知错误'}`)
+  } finally {
+    editLoading.value = false
+  }
+}
+
+// 确认删除
+const confirmDelete = () => {
+  ElMessageBox.confirm('确认删除此数据吗？', '警告', {
+    confirmButtonText: '确认',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(() => {
+    deleteData(editForm.value)
+  }).catch(() => {
+    // 取消删除
+  })
+}
+
+// 处理选择变化
+const handleSelectionChange = (selected) => {
+  console.log('选择变化:', selected)
+  selectedRows.value = selected
+}
+
+// 批量删除
+const batchDelete = () => {
+  if (selectedRows.value.length === 0) {
+    ElMessage.warning('请至少选择一条数据')
+    return
+  }
+  
+  ElMessageBox.confirm(`确认删除选中的 ${selectedRows.value.length} 条数据吗？`, '警告', {
+    confirmButtonText: '确认',
+    cancelButtonText: '取消',
+    type: 'warning'
+  }).then(async () => {
+    // 执行批量删除
+    let successCount = 0
+    let failCount = 0
+    
+    for (const row of selectedRows.value) {
+      try {
+        // 发送删除请求
+        const response = await axios.delete(apiConfig.raster.delete(row.id))
+        
+        if (response.data && response.data.success) {
+          successCount++
+        } else {
+          failCount++
+        }
+      } catch (error) {
+        console.error(`删除数据 ${row.id} 失败:`, error)
+        failCount++
+      }
+    }
+    
+    // 提示删除结果
+    if (successCount > 0 && failCount === 0) {
+      ElMessage.success(`成功删除 ${successCount} 条数据`)
+    } else if (successCount > 0 && failCount > 0) {
+      ElMessage.warning(`部分删除成功: ${successCount} 成功, ${failCount} 失败`)
+    } else {
+      ElMessage.error(`删除失败: ${failCount} 条数据未能删除`)
+    }
+    
+    // 重新获取数据列表
+    fetchUserData()
+  }).catch(() => {
+    // 取消删除
+  })
+}
 </script>
 
 <style scoped>
 .data-management-dialog-container {
-  width: 1000px;
-  height: 800px;
+  width: 90vw; /* 使用视口宽度的90%，更好地填充屏幕 */
+  max-width: 1600px; /* 设置最大宽度防止在大屏幕上过宽 */
+  height: 700px;
   background-color: #fff;
   border-radius: 4px;
   box-shadow: 0 2px 12px 0 rgba(0, 0, 0, 0.1);
@@ -530,20 +693,26 @@ const testConnection = async () => {
   padding: 0;
   overflow-y: hidden;
   flex: 1;
-  height: 700px;
+  height: calc(100% - 60px);
+  max-height: 90vh;
+  width: 100%; /* 确保内容区域使用100%宽度 */
 }
 
 .full-height-tabs {
   height: 100%;
+  width: 100%; /* 确保标签页使用100%宽度 */
 }
 
 :deep(.el-tabs__content) {
   height: calc(100% - 40px);
-  overflow: hidden;
+  min-height: 400px;
+  overflow: visible;
+  width: 100%; /* 确保标签内容使用100%宽度 */
 }
 
 :deep(.el-tab-pane) {
-  height: 100%;
+  height: auto;
+  width: 100%; /* 确保标签页面板使用100%宽度 */
 }
 
 .table-footer {
@@ -552,6 +721,7 @@ const testConnection = async () => {
   align-items: center;
   padding: 10px 0;
   margin-top: 15px;
+  width: 100%;
 }
 
 .batch-actions {
@@ -559,10 +729,42 @@ const testConnection = async () => {
   gap: 10px;
 }
 
-/* 确保表格固定高度，避免ResizeObserver问题 */
+/* 调整表格样式 */
 :deep(.el-table__body-wrapper) {
-  overflow-y: hidden;
-  max-height: 600px;
+  overflow-y: auto;
+  height: calc(100% - 40px); /* 减去表头的高度 */
+}
+
+/* 增加表格行高 */
+:deep(.el-table__row) {
+  height: 50px;
+}
+
+/* 增加表格头部行高 */
+:deep(.el-table__header) th {
+  padding: 12px 0;
+  font-weight: bold;
+}
+
+/* 确保表格占据所有可用空间 */
+:deep(.el-table) {
+  width: 100% !important;
+}
+
+/* 调整单元格内容对齐 */
+:deep(.el-table__cell) {
+  text-align: center;
+  padding: 8px 0;
+}
+
+/* 增强表格视觉效果 */
+:deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
+  background-color: #f5f7fa;
+}
+
+/* 确保所有表格列均分空间 */
+:deep(.el-table__header-wrapper) {
+  width: 100%;
 }
 
 /* 栅格数据导入样式 */
@@ -645,5 +847,14 @@ const testConnection = async () => {
   color: #f56c6c;
   margin-top: 10px;
   margin-bottom: 20px;
+}
+
+/* 编辑数据对话框样式 */
+.edit-container {
+  padding: 20px;
+}
+
+.operation-options {
+  margin-top: 20px;
 }
 </style>

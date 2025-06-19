@@ -43,78 +43,7 @@
       </div>
     </DraggableDialog>
 
-    <!-- 数据分析区对话框（原种植区提取） -->
-    <DraggableDialog
-      :visible="dialogStates[2].visible"
-      :title="dialogStates[2].title"
-      :initial-position="{ x: 150, y: 150 }"
-      @close="closeDialog(2)"
-    >
-      <div>
-        <h3>数据分析区功能</h3>
-        <p>数据分析区功能包括：</p>
-        <ul>
-          <li>自动识别</li>
-          <li>手动绘制</li>
-          <li>区域统计</li>
-        </ul>
-      </div>
-    </DraggableDialog>
-
-    <!-- 产量估算对话框 -->
-    <DraggableDialog
-      :visible="dialogStates[3].visible"
-      :title="dialogStates[3].title"
-      :initial-position="{ x: 200, y: 200 }"
-      @close="closeDialog(3)"
-    >
-      <div>
-        <h3>产量估算功能</h3>
-        <p>产量估算功能包括：</p>
-        <ul>
-          <li>数据采集</li>
-          <li>模型分析</li>
-          <li>预测报告</li>
-        </ul>
-      </div>
-    </DraggableDialog>
-
-    <!-- 耕地数据叠加与分析对话框 -->
-    <DraggableDialog
-      :visible="dialogStates[4].visible"
-      :title="dialogStates[4].title"
-      :initial-position="{ x: 250, y: 250 }"
-      @close="closeDialog(4)"
-    >
-      <div>
-        <h3>耕地数据叠加与分析功能</h3>
-        <p>耕地数据叠加与分析功能包括：</p>
-        <ul>
-          <li>数据叠加</li>
-          <li>空间分析</li>
-          <li>专题制图</li>
-        </ul>
-      </div>
-    </DraggableDialog>
-
-    <!-- 数据导入对话框 -->
-    <!-- 数据导出对话框 -->
-    <DraggableDialog
-      :visible="dialogStates[5].visible"
-      :title="dialogStates[5].title"
-      :initial-position="{ x: 300, y: 300 }"
-      @close="closeDialog(5)"
-    >
-      <div>
-        <h3>数据导出功能</h3>
-        <p>数据导出功能包括：</p>
-        <ul>
-          <li>格式转换</li>
-          <li>批量导出</li>
-          <li>数据打包</li>
-        </ul>
-      </div>
-    </DraggableDialog>
+    <!-- 对话框已删除 -->
 
     <!-- 数据管理对话框 -->
     <DataManagementDialog
@@ -153,21 +82,11 @@ const router = useRouter()
 const route = useRoute()
 const activeIndex = ref('') // 初始不选中任何项
 const dialogStates = ref({
-  1: { visible: false, title: '数据查询' },
-  2: { visible: false, title: '数据分析区' },
-  3: { visible: false, title: '产量估算' },
-  4: { visible: false, title: '耕地数据叠加与分析' },
-  5: { visible: false, title: '数据导出' }
+  1: { visible: false, title: '数据查询' }
 })
 
 let asidelist = ref([
    {id:1, title:'数据查询', icon:Picture, route: '/tianditu', view: 'map'},
-   {id:2, title:'数据分析区', icon:Crop, view: 'analysis'},
-   {id:3, title:'产量估算', icon:DataAnalysis, view: 'yield'},
-   {id:4, title:'耕地数据叠加与分析', icon:Histogram, view: 'overlay'},
-   {id:5, title:'数据导出', icon:Download, view: 'export'},
-   {id:6, title:'数据管理', icon:DataBoard, route: '/data-management', view: 'data-management'}, // 数据管理菜单项
-   {id:7, title:'栅格数据管理', icon:Picture, route: '/raster-management', view: 'raster-management'}, // 栅格数据管理菜单项
    {id:8, title:'数据管理2', icon:Management, view: 'data-management2'} // 数据管理2菜单项，使用对话框而非路由
 ])
 
