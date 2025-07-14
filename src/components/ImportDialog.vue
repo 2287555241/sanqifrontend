@@ -8,48 +8,65 @@
     class="import-dialog"
   >
     <div class="import-container">
-      <!-- 文件选择 -->
+      <!-- 栅格数据文件选择 -->
       <div class="file-select section">
-        <span class="label">选择文件</span>
+        <span class="label">选择栅格数据文件</span>
         <div class="file-input">
-          <el-input 
-            v-model="selectedFileName" 
-            placeholder="未选择文件" 
+          <el-upload
+            class="upload-hidden"
+            :show-file-list="false"
+            :auto-upload="false"
+            :file-list="fileList"
+            :on-change="handleFileChange"
+            accept=".zip,.geojson,.tiff,.tif"
+          >
+            <el-button type="primary" class="upload-button">
+              <el-icon class="upload-icon"><Upload /></el-icon>
+              选择文件
+            </el-button>
+          </el-upload>
+          <el-input
+            v-model="selectedFileName"
+            placeholder="未选择文件"
             readonly
             class="custom-input"
-          >
-            <template #append>
-              <el-upload
-                class="upload-hidden"
-                action="/api/raster/import"
-                :show-file-list="false"
-                :on-success="handleSuccess"
-                :on-error="handleError"
-                :before-upload="beforeUpload"
-                accept=".zip,.geojson,.tiff,.tif"
-                :auto-upload="false"
-                :file-list="fileList"
-                ref="uploadRef"
-                :on-change="handleFileChange"
-                :data="uploadData"
-                name="files"
-              >
-                <el-button type="primary" class="upload-button">
-                  <el-icon class="upload-icon"><Upload /></el-icon>
-                  选择文件
-                </el-button>
-                <template #tip>
-                  <div class="el-upload__tip">
-                    支持上传 zip（矢量包）、geojson（矢量）、tiff/tif（栅格）格式的文件
-                  </div>
-                </template>
-              </el-upload>
-            </template>
-          </el-input>
+            style="margin-left: 10px; width: 250px;"
+          />
         </div>
         <div class="file-tip">
           <el-icon><InfoFilled /></el-icon>
           支持上传 zip（矢量包）、geojson（矢量）、tiff/tif（栅格）格式的文件
+        </div>
+      </div>
+
+      <!-- MTL 文件选择 -->
+      <div class="file-select section">
+        <span class="label">选择元数据文件 (MTL)</span>
+        <div class="file-input">
+          <el-upload
+            class="upload-hidden"
+            :show-file-list="false"
+            :auto-upload="false"
+            :file-list="mtlFileList"
+            :on-change="handleMtlFileChange"
+            accept=".txt"
+          >
+            <el-button type="primary" class="upload-button">
+              <el-icon class="upload-icon"><Upload /></el-icon>
+              选择文件
+            </el-button>
+          </el-upload>
+          <el-input
+            v-model="selectedMtlFileName"
+            placeholder="未选择文件"
+            readonly
+            class="custom-input"
+            style="margin-left: 10px; width: 250px;"
+          />
+        </div>
+        <div class="file-tip">
+          <el-icon><InfoFilled /></el-icon>
+          支持上传 MTL 格式的文件(txt)
         </div>
       </div>
 
@@ -65,152 +82,140 @@
           resize="none"
         />
       </div>
-    </div>
 
-    <template #footer>
-      <div class="dialog-footer">
-        <el-button @click="handleClose" class="cancel-button">取消</el-button>
-        <el-button type="primary" @click="handleConfirm" :loading="uploading" class="confirm-button">
-          <el-icon v-if="!uploading"><Upload /></el-icon>
-          <span>{{ uploading ? '上传中...' : '上传' }}</span>
+      <!-- 导入说明 -->
+      <div class="import-info section">
+        <div class="info-tip">
+          <el-icon><InfoFilled /></el-icon>
+          <span>导入说明：此操作将同时完成以下功能：</span>
+        </div>
+        <div class="info-list">
+          <div class="info-item">• 将栅格数据文件保存到服务器</div>
+          <div class="info-item">• 将MTL文件内容保存到raster_data表</div>
+          <div class="info-item">• 解析MTL文件并保存元数据信息</div>
+          <div class="info-item">• 生成缩略图用于预览</div>
+        </div>
+      </div>
+
+      <!-- 同步导入按钮 -->
+      <div style="margin-top: 20px; text-align: right;">
+        <el-button type="primary" @click="handleSyncImport" :disabled="!selectedFile || !selectedMtlFile">
+          <el-icon><Upload /></el-icon>
+          导入栅格数据及元数据
         </el-button>
       </div>
-    </template>
+    </div>
   </el-dialog>
 </template>
 
 <script setup>
 import { ref, defineEmits, watch } from 'vue'
-import { 
-  Upload, 
-  Grid, 
-  Location, 
-  InfoFilled, 
-  FolderOpened, 
-  FolderAdd,
-  Plus
-} from '@element-plus/icons-vue'
+import { Upload, InfoFilled } from '@element-plus/icons-vue'
 import { ElMessage } from 'element-plus'
 import axios from 'axios'
+import apiConfig from '../config/api'
 
 const emit = defineEmits(['update:modelValue', 'success'])
 const dialogVisible = ref(false)
-const uploading = ref(false)
+const selectedFile = ref(null)
+const selectedMtlFile = ref(null)
 const selectedFileName = ref('')
+const selectedMtlFileName = ref('')
 const description = ref('')
 const fileList = ref([])
-const uploadRef = ref(null)
-const uploadData = ref({
-  description: '',
-  directory: 'default'
-})
-const uploadInfo = ref({
-  show: false,
-  type: '',
-  message: '',
-  description: ''
-})
+const mtlFileList = ref([])
 
-// 文件上传前的验证
-const beforeUpload = (file) => {
-  // 允许的扩展名
-  const allowedExts = ['.zip', '.geojson', '.tiff', '.tif']
-  const name = file.name.toLowerCase()
-  const ext = allowedExts.find(e => name.endsWith(e))
-  if (!ext) {
-    ElMessage.error('只能上传 zip、geojson、tiff、tif 文件!')
-    return false
-  }
-  // 类型初步判断
-  let fileType = '未知类型'
-  if (ext === '.zip' || ext === '.geojson') fileType = '矢量文件'
-  if (ext === '.tiff' || ext === '.tif') fileType = '栅格文件'
-  uploadInfo.value = {
-    show: true,
-    type: 'info',
-    message: '正在上传... (' + fileType + ')',
-    description: `文件名：${file.name}`
-  }
-  // 更新上传数据
-  uploadData.value.description = description.value
-  uploading.value = true
-  return true
-}
-
-// 文件选择变化时
 const handleFileChange = (file, fileListArr) => {
-  fileList.value = fileListArr.slice(-1) // 只保留最后一个文件
+  fileList.value = fileListArr.slice(-1)
+  selectedFile.value = file.raw
   selectedFileName.value = file.name
 }
+const handleMtlFileChange = (file, fileListArr) => {
+  mtlFileList.value = fileListArr.slice(-1)
+  selectedMtlFile.value = file.raw
+  selectedMtlFileName.value = file.name
+}
 
-// 上传成功的回调
-const handleSuccess = (response) => {
-  uploading.value = false
-  if (response.success) {
-    ElMessage.success(response.message || '上传成功')
-    emit('success', response.data)
-  } else {
-    ElMessage.error(response.error || '上传失败')
+const handleSyncImport = async () => {
+  if (!selectedFile.value) {
+    ElMessage.warning('请先选择栅格数据文件')
+    return
   }
-  fileList.value = []
-  selectedFileName.value = ''
-  description.value = ''
+  if (!selectedMtlFile.value) {
+    ElMessage.warning('请先选择MTL元数据文件')
+    return
+  }
+  
+  try {
+    // 显示加载状态
+    ElMessage.info('正在导入数据，请稍候...')
+    
+    // 调用新接口：将栅格数据和MTL内容导入到raster_data表
+    const formData = new FormData()
+    formData.append('rasterFile', selectedFile.value)
+    formData.append('mtlFile', selectedMtlFile.value)
+    formData.append('description', description.value)
+    
+    const res = await axios.post(apiConfig.raster.importRasterWithMtlContent, formData)
+    
+    if (!res.data || !res.data.success) {
+      throw new Error(res.data?.error || '栅格数据和MTL内容导入失败')
+    }
+    
+    // 检查是否需要额外的元数据导入（如果后端接口没有自动处理）
+    try {
+      // 等待一下让后端处理完成
+      await new Promise(resolve => setTimeout(resolve, 500))
+      
+      // 检查是否有元数据
+      const checkRes = await axios.get(apiConfig.raster.getMetadata(res.data.id))
+      if (!checkRes.data.success) {
+        // 如果没有元数据，尝试导入
+        const metadataFormData = new FormData()
+        metadataFormData.append('rasterId', res.data.id)
+        metadataFormData.append('mtl', selectedMtlFile.value)
+        
+        await axios.post(apiConfig.raster.importMetadata, metadataFormData)
+        console.log('额外元数据导入成功')
+      }
+    } catch (metadataError) {
+      console.warn('元数据检查/导入失败，但不影响主流程:', metadataError)
+    }
+    
+    ElMessage.success('数据导入成功！栅格数据、MTL内容和元数据已保存到数据库')
+    emit('success', res.data)
+    handleClose()
+    
+  } catch (err) {
+    console.error('导入失败:', err)
+    ElMessage.error(err.response?.data?.error || err.message || '同步导入失败')
+  }
 }
 
-// 上传失败的回调
-const handleError = (error) => {
-  uploading.value = false
-  selectedFileName.value = ''
-  fileList.value = []
-  ElMessage.error(error.response?.data?.error || '上传失败，请重试')
-}
-
-// 关闭弹窗
 const handleClose = () => {
   dialogVisible.value = false
   emit('update:modelValue', false)
-  // 重置状态
+  selectedFile.value = null
+  selectedMtlFile.value = null
   selectedFileName.value = ''
+  selectedMtlFileName.value = ''
   description.value = ''
-  uploading.value = false
   fileList.value = []
+  mtlFileList.value = []
 }
 
-// 确认导入
-const handleConfirm = () => {
-  if (!fileList.value.length) {
-    ElMessage.warning('请先选择文件')
-    return
-  }
-  if (!description.value.trim()) {
-    ElMessage.warning('请输入数据描述')
-    return
-  }
-  uploading.value = true
-  // 手动触发上传
-  uploadRef.value.submit()
-}
-
-// 监听父组件传入的显示状态
 const props = defineProps({
   modelValue: {
     type: Boolean,
     default: false
   }
 })
-
-// 监听modelValue的变化
 watch(
   () => props.modelValue,
   (newVal) => {
     dialogVisible.value = newVal
   }
 )
-
-// 监听描述变化
-watch(description, (newVal) => {
-  uploadData.value.description = newVal
-})
 </script>
 
 <style scoped>
@@ -389,5 +394,41 @@ watch(description, (newVal) => {
   border-radius: 8px;
   overflow: hidden;
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+/* 导入说明样式 */
+.import-info {
+  background-color: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 16px;
+}
+
+.info-tip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 12px;
+  color: #495057;
+  font-weight: 500;
+  font-size: 14px;
+}
+
+.info-tip .el-icon {
+  color: #409eff;
+  font-size: 16px;
+}
+
+.info-list {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.info-item {
+  color: #6c757d;
+  font-size: 13px;
+  line-height: 1.4;
+  padding-left: 8px;
 }
 </style> 

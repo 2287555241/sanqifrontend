@@ -139,6 +139,7 @@ import { ElMessage, ElMessageBox } from 'element-plus'
 import { Document, Location, Loading } from '@element-plus/icons-vue'
 import ImportDialog from '../components/ImportDialog.vue'
 import axios from 'axios'
+import apiConfig from '../config/api'
 
 // 定义emit
 const emit = defineEmits(['close', 'disableDrag', 'enableDrag'])
@@ -188,25 +189,25 @@ const formatDate = (dateString) => {
 const fetchData = async () => {
   loading.value = true
   try {
-    const response = await axios.get('/api/raster/list')
+    const response = await axios.get(apiConfig.raster.list)
     if (response.data.success) {
       // 获取每个文件的详细信息
       const detailedData = await Promise.all(
         response.data.data.map(async (item) => {
           try {
             // 获取文件大小
-            const sizeResponse = await axios.get(`/api/raster/${item.id}/size`)
+            const sizeResponse = await axios.get(apiConfig.raster.getSize(item.id))
             return {
               ...item,
               size: sizeResponse.data.fileSizeFormatted,
-              thumbnailUrl: `/api/raster/thumbnail/view/${item.id}`
+              thumbnailUrl: apiConfig.raster.thumbnail(item.id)
             }
           } catch (error) {
             console.error(`获取文件 ${item.id} 大小失败:`, error)
             return {
               ...item,
               size: '未知',
-              thumbnailUrl: `/api/raster/thumbnail/view/${item.id}`
+              thumbnailUrl: apiConfig.raster.thumbnail(item.id)
             }
           }
         })
@@ -263,7 +264,7 @@ const handleDelete = async (row) => {
       }
     )
     
-    const response = await axios.delete(`/api/raster/${row.id}`)
+    const response = await axios.delete(apiConfig.raster.delete(row.id))
     if (response.data.success) {
       ElMessage.success('删除成功')
       fetchData() // 重新获取数据列表
@@ -294,7 +295,7 @@ const handleBatchDelete = async () => {
     )
     
     const deletePromises = selectedRows.value.map(row => 
-      axios.delete(`/api/raster/${row.id}`)
+      axios.delete(apiConfig.raster.delete(row.id))
     )
     
     await Promise.all(deletePromises)
@@ -318,7 +319,7 @@ const handlePreview = (row) => {
   if (!row.thumbnailUrl) return
   currentPreviewItem.value = {
     ...row,
-    thumbnailUrl: `/api/raster/thumbnail/view/${row.id}`
+    thumbnailUrl: apiConfig.raster.thumbnail(row.id)
   }
   previewDialogVisible.value = true
 }
@@ -362,7 +363,14 @@ importDialogVisible.value = true
 // 导入成功的回调
 const handleImportSuccess = () => {
 ElMessage.success('数据导入成功')
-fetchData() // 重新获取数据列表
+// 延迟一下再刷新数据，确保后端处理完成
+setTimeout(() => {
+  fetchData() // 重新获取数据列表
+  // 通知地图组件刷新数据
+  if (window._mapEmitter) {
+    window._mapEmitter.emit('refresh-map-data')
+  }
+}, 1000)
 }
 
 // 处理图片加载错误

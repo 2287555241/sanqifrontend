@@ -44,22 +44,7 @@
     </DraggableDialog>
 
     <!-- 数据分析区对话框（原种植区提取） -->
-    <DraggableDialog
-      :visible="dialogStates[2].visible"
-      :title="dialogStates[2].title"
-      :initial-position="{ x: 150, y: 150 }"
-      @close="closeDialog(2)"
-    >
-      <div>
-        <h3>数据分析区功能</h3>
-        <p>数据分析区功能包括：</p>
-        <ul>
-          <li>自动识别</li>
-          <li>手动绘制</li>
-          <li>区域统计</li>
-        </ul>
-      </div>
-    </DraggableDialog>
+    <!-- This specific dialog is being removed -->
 
     <!-- 产量估算对话框 -->
     <DraggableDialog
@@ -117,10 +102,7 @@
     </DraggableDialog>
 
     <!-- 数据管理对话框 -->
-    <DataManagementDialog
-      :visible="dataManagementVisible"
-      @close="closeDataManagement"
-    />
+    <!-- 移除 <DataManagementDialog> 相关代码，统一由父组件通过 openDataManagement 事件控制 DataManagement.vue 的弹窗显示 -->
   </el-aside>
 </template>
 
@@ -128,7 +110,6 @@
 import { ref, defineEmits, defineProps, onMounted, watch } from 'vue'
 import { useRouter, useRoute } from 'vue-router'
 import DraggableDialog from '../components/DraggableDialog.vue'
-import DataManagementDialog from '../components/DataManagementDialog.vue'
 import {
   Picture,
   Crop,
@@ -210,44 +191,45 @@ const updateActiveIndex = () => {
 const dataManagementVisible = ref(false)
 
 const handleMenuItemClick = (item) => {
+  console.log('点击菜单', item);
+  // 始终发送事件，保证每次点击都能通知内容区
+  emitter.emit(Events.REFRESH_CONTENT, { view: item.view, id: item.id })
+
   // 更新当前活动视图
   activeView.value = item.view
   activeIndex.value = item.id.toString()
-  
-  // 发送事件通知内容区域刷新
-  emitter.emit(Events.REFRESH_CONTENT, { view: item.view, id: item.id })
   
   // 如果是地图相关视图，发送清除地图事件
   if (item.view !== 'map' && activeView.value === 'map') {
     emitter.emit(Events.CLEAR_MAP)
   }
-  
+
+  // "数据分析区"只发事件，不做其它
+  if (item.id === 2) {
+    console.log('emit openDataAnalysisPanel');
+    emit('openDataAnalysisPanel');
+    return;
+  }
+
+  // "数据查询"只发事件，不做其它
+  if (item.id === 1) {
+    console.log('emit openRasterDataSearch');
+    emit('openRasterDataSearch');
+    return;
+  }
+
+  // 数据管理菜单项，弹窗模式
   if (item.id === 6) {
-    // 数据管理按钮，触发事件给父组件
+    console.log('点击了第6个按钮（数据管理），发送 openDataManagement 事件');
     emit('openDataManagement')
-  } else if (item.id === 8) {
-    // 数据管理2按钮，显示自定义对话框
+    return;
+  }
+
+  if (item.id === 8) {
     dataManagementVisible.value = true
   } else if (item.route) {
-    // 如果有route属性，则进行路由跳转
-    if (item.id === 1) { // 数据查询按钮
-      // 构建查询参数对象
-      const query = { onlyMap: 'false' }
-      
-      // 如果有projectId参数，保留它
-      if (route.query.projectId) {
-        query.projectId = route.query.projectId
-      }
-      
-      router.push({
-        path: item.route,
-        query: query
-      })
-    } else {
     router.push(item.route)
-    }
   } else if (dialogStates.value[item.id]) {
-    // 否则打开对应的对话框
     dialogStates.value[item.id].visible = true
   }
 }
@@ -261,7 +243,7 @@ const closeDataManagement = () => {
   dataManagementVisible.value = false
 }
 
-const emit = defineEmits(['openDataManagement'])
+const emit = defineEmits(['openDataManagement', 'openRasterDataSearch', 'openDataAnalysisPanel'])
 </script>
 
 <style scoped>

@@ -129,12 +129,18 @@ onMounted(() => {
   // 注册事件监听
   emitter.on(Events.REFRESH_CONTENT, refreshContentHandler);
   emitter.on(Events.CLEAR_MAP, clearMapHandler);
+  emitter.on('openDataManagement', () => {
+    console.log('navMain 接收到 openDataManagement 事件，转发给 index.vue');
+    // 转发事件给 index.vue
+    emitter.emit('openDataManagement');
+  });
 });
 
 onBeforeUnmount(() => {
   // 移除事件监听
   emitter.off(Events.REFRESH_CONTENT, refreshContentHandler);
   emitter.off(Events.CLEAR_MAP, clearMapHandler);
+  emitter.off('openDataManagement');
 });
 </script>
 

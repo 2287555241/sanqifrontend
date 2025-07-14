@@ -7,6 +7,13 @@
     <link rel="icon" href="<%= BASE_URL %>favicon.ico">
     <title><%= htmlWebpackPlugin.options.title %></title>
     
+    <!-- 高德地图安全密钥配置 -->
+    <script type="text/javascript">
+      window._AMapSecurityConfig = {
+        securityJsCode: 'e6706f5ad9836e0a3d296f05ade23357',
+      }
+    </script>
+    
     <!-- 添加脚本以捕获并忽略ResizeObserver循环错误 -->
     <script>
       window.addEventListener('error', function(e) {

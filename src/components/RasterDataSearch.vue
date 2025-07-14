@@ -1,626 +1,515 @@
 <template>
-  <div class="raster-search-container">
-    <!-- 搜索选项卡 -->
-    <div class="search-tabs">
-      <div 
-        v-for="tab in tabs" 
-        :key="tab.name" 
-        :class="['search-tab', { active: activeTab === tab.name }]"
-        @click="activeTab = tab.name"
-      >
-        {{ tab.label }}
-      </div>
-    </div>
-
-    <!-- 云量检索 -->
-    <div v-show="activeTab === 'cloudCover'" class="search-panel">
-      <div class="search-form">
-        <div class="form-item">
-          <label>云量大于等于 (%)</label>
-          <div class="input-group">
-            <el-button size="small" @click="decreaseCloud" :disabled="cloudCover <= 0">
-              <el-icon><Minus /></el-icon>
-            </el-button>
-            <el-input-number 
-              v-model="cloudCover" 
-              size="small"
-              :min="0" 
-              :max="100" 
-              :step="0.01"
-              controls-position="right"
-              placeholder="输入最小云量"
-            />
-            <el-button size="small" @click="increaseCloud" :disabled="cloudCover >= 100">
-              <el-icon><Plus /></el-icon>
+  <div class="map-controls-sidebar" :style="{ width: sidebarWidth + 'px' }">
+    <div class="sidebar-resizer" @mousedown="startResizing"></div>
+    <div class="sidebar-content">
+      <div class="control-panel">
+        <div class="control-panel-header">
+          <h3>栅格数据检索</h3>
+          <el-icon class="close-button" @click="closePanel"><Close /></el-icon>
+        </div>
+        <div class="control-panel-section">
+          <div class="control-panel-title">栅格数据检索</div>
+          <div class="search-tabs">
+            <div class="search-type-buttons">
+              <el-button 
+                :class="{ active: activeSearchType === 'cloudCover' }" 
+                :type="activeSearchType === 'cloudCover' ? 'primary' : ''" 
+                size="small" 
+                @click="activeSearchType = 'cloudCover'"
+              >
+                云量检索
+              </el-button>
+              <el-button 
+                :class="{ active: activeSearchType === 'date' }" 
+                :type="activeSearchType === 'date' ? 'primary' : ''" 
+                size="small" 
+                @click="activeSearchType = 'date'"
+              >
+                日期检索
+              </el-button>
+              <el-button 
+                :class="{ active: activeSearchType === 'sunElevation' }" 
+                :type="activeSearchType === 'sunElevation' ? 'primary' : ''" 
+                size="small" 
+                @click="activeSearchType = 'sunElevation'"
+              >
+                高度角检索
+              </el-button>
+              <el-button 
+                :class="{ active: activeSearchType === 'combined' }" 
+                :type="activeSearchType === 'combined' ? 'primary' : ''" 
+                size="small" 
+                @click="activeSearchType = 'combined'"
+              >
+                组合检索
+              </el-button>
+            </div>
+          </div>
+          
+          <!-- 云量检索 -->
+          <div v-if="activeSearchType === 'cloudCover'" class="search-panel">
+            <div class="form-item">
+              <label>云量大于等于 (%)</label>
+              <el-input 
+                v-model="cloudCoverInput" 
+                size="small" 
+                placeholder="输入最小云量" 
+                class="simple-input" 
+                @input="handleCloudCoverInput" 
+                @keyup.enter="searchByCloudCover"
+              />
+            </div>
+            <el-button type="primary" @click="searchByCloudCover" class="search-btn-full">
+              按云量查询
             </el-button>
           </div>
-        </div>
-        <el-button type="primary" @click="searchByCloudCover">按云量查询</el-button>
-      </div>
-    </div>
-
-    <!-- 采集日期检索 -->
-    <div v-show="activeTab === 'date'" class="search-panel">
-      <div class="search-form">
-        <div class="form-item">
-          <label>开始日期</label>
-          <el-date-picker
-            v-model="startDate"
-            type="date"
-            placeholder="选择开始日期"
-            format="YYYY-MM-DD"
-            size="small"
-            style="width: 100%"
-          />
-        </div>
-        <div class="form-item">
-          <label>结束日期</label>
-          <el-date-picker
-            v-model="endDate"
-            type="date"
-            placeholder="选择结束日期"
-            format="YYYY-MM-DD"
-            size="small"
-            style="width: 100%"
-          />
-        </div>
-        <el-button type="primary" @click="searchByDate">按日期查询</el-button>
-      </div>
-    </div>
-
-    <!-- 太阳高度角检索 -->
-    <div v-show="activeTab === 'sunElevation'" class="search-panel">
-      <div class="search-form">
-        <div class="form-item">
-          <label>太阳高度角大于等于 (度)</label>
-          <div class="input-group">
-            <el-button size="small" @click="decreaseSunElevation" :disabled="sunElevation <= 0">
-              <el-icon><Minus /></el-icon>
-            </el-button>
-            <el-input-number
-              v-model="sunElevation"
-              size="small"
-              :min="0"
-              :max="90"
-              :step="0.01"
-              controls-position="right"
-              placeholder="输入最小太阳高度角"
-            />
-            <el-button size="small" @click="increaseSunElevation" :disabled="sunElevation >= 90">
-              <el-icon><Plus /></el-icon>
+          
+          <!-- 日期检索 -->
+          <div v-if="activeSearchType === 'date'" class="search-panel">
+            <div class="form-item">
+              <label>开始日期</label>
+              <el-date-picker 
+                v-model="startDate" 
+                type="date" 
+                placeholder="选择开始日期" 
+                format="YYYY-MM-DD" 
+                size="small" 
+                style="width: 100%" 
+                class="search-date-input" 
+              />
+            </div>
+            <div class="form-item">
+              <label>结束日期</label>
+              <el-date-picker 
+                v-model="endDate" 
+                type="date" 
+                placeholder="选择结束日期" 
+                format="YYYY-MM-DD" 
+                size="small" 
+                style="width: 100%" 
+                class="search-date-input" 
+              />
+            </div>
+            <el-button type="primary" @click="searchByDate" class="search-btn-full">
+              按日期查询
             </el-button>
           </div>
+          
+          <!-- 太阳高度角检索 -->
+          <div v-if="activeSearchType === 'sunElevation'" class="search-panel">
+            <div class="form-item">
+              <label>太阳高度角大于等于 (度)</label>
+              <el-input 
+                v-model="sunElevationInput" 
+                size="small" 
+                placeholder="输入最小太阳高度角" 
+                class="simple-input" 
+                @input="handleSunElevationInput" 
+                @keyup.enter="searchBySunElevation"
+              />
+            </div>
+            <el-button type="primary" @click="searchBySunElevation" class="search-btn-full">
+              按太阳高度角查询
+            </el-button>
+          </div>
+          
+          <!-- 组合检索 -->
+          <div v-if="activeSearchType === 'combined'" class="search-panel">
+            <div class="form-item">
+              <label>云量大于等于 (%)</label>
+              <el-input 
+                v-model="combinedCloudCoverInput" 
+                size="small" 
+                placeholder="输入最小云量" 
+                class="simple-input" 
+                @input="handleCombinedCloudCoverInput"
+              />
+            </div>
+            <div class="form-item">
+              <label>开始日期</label>
+              <el-date-picker 
+                v-model="combinedParams.startDate" 
+                type="date" 
+                placeholder="选择开始日期" 
+                format="YYYY-MM-DD" 
+                size="small" 
+                style="width: 100%" 
+                class="search-date-input" 
+              />
+            </div>
+            <div class="form-item">
+              <label>结束日期</label>
+              <el-date-picker 
+                v-model="combinedParams.endDate" 
+                type="date" 
+                placeholder="选择结束日期" 
+                format="YYYY-MM-DD" 
+                size="small" 
+                style="width: 100%" 
+                class="search-date-input" 
+              />
+            </div>
+            <div class="form-item">
+              <label>太阳高度角大于等于 (度)</label>
+              <el-input 
+                v-model="combinedSunElevationInput" 
+                size="small" 
+                placeholder="输入最小太阳高度角" 
+                class="simple-input" 
+                @input="handleCombinedSunElevationInput"
+              />
+            </div>
+            <el-button type="primary" @click="combinedSearch" class="search-btn-full">
+              组合查询
+            </el-button>
+          </div>
+          
+          <!-- 查询结果 -->
+          <div class="search-results-title">
+            <div class="title">查询结果</div>
+            <el-button type="primary" size="small" @click="refreshData" :icon="Refresh">
+              刷新
+            </el-button>
+          </div>
+          <div class="search-results">
+            <el-scrollbar>
+              <el-table 
+                :data="rasterDataList" 
+                style="width: 100%" 
+                size="small" 
+                :show-header="true" 
+                v-loading="loading"
+              >
+                <el-table-column prop="id" label="ID" width="50" />
+                <el-table-column prop="name" label="名称" min-width="120" show-overflow-tooltip />
+                <el-table-column label="操作" width="90" fixed="right">
+                  <template #default="scope">
+                    <el-button type="primary" size="small" @click="viewRasterData(scope.row)">
+                      查看
+                    </el-button>
+                  </template>
+                </el-table-column>
+              </el-table>
+            </el-scrollbar>
+          </div>
         </div>
-        <el-button type="primary" @click="searchBySunElevation">按太阳高度角查询</el-button>
       </div>
-    </div>
-
-    <!-- 组合检索 -->
-    <div v-show="activeTab === 'combined'" class="search-panel">
-      <div class="search-form">
-        <div class="form-item">
-          <label>云量大于等于 (%)</label>
-          <el-input-number
-            v-model="combinedParams.cloudCover"
-            size="small"
-            :min="0"
-            :max="100"
-            :step="0.01"
-            controls-position="right"
-            placeholder="输入最小云量"
-            style="width: 100%"
-          />
-        </div>
-        <div class="form-item">
-          <label>开始日期</label>
-          <el-date-picker
-            v-model="combinedParams.startDate"
-            type="date"
-            placeholder="选择开始日期"
-            format="YYYY-MM-DD"
-            size="small"
-            style="width: 100%"
-          />
-        </div>
-        <div class="form-item">
-          <label>结束日期</label>
-          <el-date-picker
-            v-model="combinedParams.endDate"
-            type="date"
-            placeholder="选择结束日期"
-            format="YYYY-MM-DD"
-            size="small"
-            style="width: 100%"
-          />
-        </div>
-        <div class="form-item">
-          <label>太阳高度角大于等于 (度)</label>
-          <el-input-number
-            v-model="combinedParams.sunElevation"
-            size="small"
-            :min="0"
-            :max="90"
-            :step="0.01"
-            controls-position="right"
-            placeholder="输入最小太阳高度角"
-            style="width: 100%"
-          />
-        </div>
-        <el-button type="primary" @click="combinedSearch">组合查询</el-button>
-      </div>
-    </div>
-
-    <!-- 数据表格 -->
-    <div class="search-results">
-      <div class="result-header">
-        <div class="title">查询结果</div>
-        <el-button type="primary" size="small" @click="refreshData" icon="Refresh">刷新</el-button>
-      </div>
-      
-      <el-table
-        :data="rasterDataList"
-        style="width: 100%"
-        size="small"
-        border
-        stripe
-        height="180px"
-        v-loading="loading"
-      >
-        <el-table-column prop="id" label="ID" width="40" />
-        <el-table-column prop="name" label="名称" min-width="110" show-overflow-tooltip />
-        <el-table-column label="操作" width="100" fixed="right">
-          <template #default="scope">
-            <el-button type="primary" size="small" @click="viewRasterData(scope.row)">查看</el-button>
-            <el-button type="danger" size="small" @click="deleteRasterData(scope.row)">删除</el-button>
-          </template>
-        </el-table-column>
-      </el-table>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref, reactive } from 'vue'
-import { ElMessage, ElMessageBox } from 'element-plus'
-import { Minus, Plus, Refresh } from '@element-plus/icons-vue'
-import apiConfig from '../config/api'
-import axios from 'axios'
+import { ref, reactive, onMounted, onBeforeUnmount, watch } from 'vue';
+import { ElMessage } from 'element-plus';
+import { Close, Refresh } from '@element-plus/icons-vue';
+import { emitter, Events } from '../utils/eventBus';
+import apiConfig from '../config/api';
+import axios from 'axios';
 
-// 搜索选项卡定义
-const tabs = [
-  { name: 'cloudCover', label: '云量检索' },
-  { name: 'date', label: '采集日期检索' },
-  { name: 'sunElevation', label: '太阳高度角检索' },
-  { name: 'combined', label: '组合检索' }
-]
+// Props
+const props = defineProps({
+  visible: {
+    type: Boolean,
+    default: true
+  }
+});
 
-// 当前激活的选项卡
-const activeTab = ref('cloudCover')
 
-// 云量检索参数
-const cloudCover = ref(null)
 
-// 采集日期检索参数
-const startDate = ref(null)
-const endDate = ref(null)
+// Emits
+const emit = defineEmits(['close', 'view-data']);
 
-// 太阳高度角检索参数
-const sunElevation = ref(null)
+// State
+const sidebarWidth = ref(350);
+const minSidebarWidth = 250;
+const maxSidebarWidth = 600;
+const isResizing = ref(false);
 
-// 组合检索参数
+const activeSearchType = ref('cloudCover');
+const rasterDataList = ref([]);
+const loading = ref(false);
+
+// 搜索参数
+const cloudCoverInput = ref('');
+let cloudCover = ref(null);
+const startDate = ref(null);
+const endDate = ref(null);
+const sunElevationInput = ref('');
+let sunElevation = ref(null);
+
+const combinedCloudCoverInput = ref('');
+const combinedSunElevationInput = ref('');
 const combinedParams = reactive({
   cloudCover: null,
   startDate: null,
   endDate: null,
   sunElevation: null
-})
+});
 
-// 数据列表
-const rasterDataList = ref([])
-const loading = ref(false)
+// 方法
+const closePanel = () => {
+  emit('close');
+};
 
-// 云量增减函数
-const increaseCloud = () => {
-  if (cloudCover.value === null) {
-    cloudCover.value = 0
+const startResizing = (e) => {
+  isResizing.value = true;
+  document.addEventListener('mousemove', handleMouseMove);
+  document.addEventListener('mouseup', stopResizing);
+  e.preventDefault();
+};
+
+const handleMouseMove = (e) => {
+  if (!isResizing.value) return;
+  const newWidth = window.innerWidth - e.clientX;
+  if (newWidth >= minSidebarWidth && newWidth <= maxSidebarWidth) {
+    sidebarWidth.value = newWidth;
   }
-  cloudCover.value = Math.min(100, cloudCover.value + 1)
-}
+};
 
-const decreaseCloud = () => {
-  if (cloudCover.value === null) {
-    cloudCover.value = 0
-    return
-  }
-  cloudCover.value = Math.max(0, cloudCover.value - 1)
-}
+const stopResizing = () => {
+  isResizing.value = false;
+  document.removeEventListener('mousemove', handleMouseMove);
+  document.removeEventListener('mouseup', stopResizing);
+};
 
-// 太阳高度角增减函数
-const increaseSunElevation = () => {
-  if (sunElevation.value === null) {
-    sunElevation.value = 0
-  }
-  sunElevation.value = Math.min(90, sunElevation.value + 1)
-}
-
-const decreaseSunElevation = () => {
-  if (sunElevation.value === null) {
-    sunElevation.value = 0
-    return
-  }
-  sunElevation.value = Math.max(0, sunElevation.value - 1)
-}
-
-// 按云量查询
-const searchByCloudCover = async () => {
-  loading.value = true
-  
-  try {
-    const params = {}
-    if (cloudCover.value !== null) {
-      params.min = cloudCover.value
-    }
-    
-    const response = await axios.get(apiConfig.raster.search.cloudCover, { params })
-    
-    if (response.data.success) {
-      rasterDataList.value = response.data.data || []
-      if (rasterDataList.value.length === 0) {
-        ElMessage.info('没有找到符合条件的栅格数据')
-      }
-    } else {
-      ElMessage.error(response.data.error || '查询失败')
-    }
-  } catch (error) {
-    console.error('Error:', error)
-    ElMessage.error(error.message || '查询失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 按采集日期查询
-const searchByDate = async () => {
-  loading.value = true
-  
-  try {
-    const params = {}
-    if (startDate.value) {
-      params.startDate = formatDate(startDate.value)
-    }
-    if (endDate.value) {
-      params.endDate = formatDate(endDate.value)
-    }
-    
-    const response = await axios.get(apiConfig.raster.search.date, { params })
-    
-    if (response.data.success) {
-      rasterDataList.value = response.data.data || []
-      if (rasterDataList.value.length === 0) {
-        ElMessage.info('没有找到符合条件的栅格数据')
-      }
-    } else {
-      ElMessage.error(response.data.error || '查询失败')
-    }
-  } catch (error) {
-    console.error('Error:', error)
-    ElMessage.error(error.message || '查询失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 按太阳高度角查询
-const searchBySunElevation = async () => {
-  loading.value = true
-  
-  try {
-    const params = {}
-    if (sunElevation.value !== null) {
-      params.min = sunElevation.value
-    }
-    
-    const response = await axios.get(apiConfig.raster.search.sunElevation, { params })
-    
-    if (response.data.success) {
-      rasterDataList.value = response.data.data || []
-      if (rasterDataList.value.length === 0) {
-        ElMessage.info('没有找到符合条件的栅格数据')
-      }
-    } else {
-      ElMessage.error(response.data.error || '查询失败')
-    }
-  } catch (error) {
-    console.error('Error:', error)
-    ElMessage.error(error.message || '查询失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 组合查询
-const combinedSearch = async () => {
-  loading.value = true
-  
-  try {
-    const params = {}
-    if (combinedParams.cloudCover !== null) {
-      params.cloudCover = combinedParams.cloudCover
-    }
-    if (combinedParams.startDate) {
-      params.startDate = formatDate(combinedParams.startDate)
-    }
-    if (combinedParams.endDate) {
-      params.endDate = formatDate(combinedParams.endDate)
-    }
-    if (combinedParams.sunElevation !== null) {
-      params.sunElevation = combinedParams.sunElevation
-    }
-    
-    const response = await axios.get(apiConfig.raster.search.combined, { params })
-    
-    if (response.data.success) {
-      rasterDataList.value = response.data.data || []
-      if (rasterDataList.value.length === 0) {
-        ElMessage.info('没有找到符合条件的栅格数据')
-      }
-    } else {
-      ElMessage.error(response.data.error || '查询失败')
-    }
-  } catch (error) {
-    console.error('Error:', error)
-    ElMessage.error(error.message || '查询失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 刷新数据列表
-const refreshData = async () => {
-  loading.value = true
-  
-  try {
-    const response = await axios.get(apiConfig.raster.list)
-    
-    if (response.data.success) {
-      rasterDataList.value = response.data.data || []
-      if (rasterDataList.value.length === 0) {
-        ElMessage.info('暂无数据')
-      }
-    } else {
-      ElMessage.error(response.data.error || '加载数据失败')
-    }
-  } catch (error) {
-    console.error('Error:', error)
-    ElMessage.error(error.message || '加载数据失败')
-  } finally {
-    loading.value = false
-  }
-}
-
-// 查看栅格数据
-const viewRasterData = (data) => {
-  ElMessage.info(`查看栅格数据: ${data.name}`)
-  // 这里可以添加查看栅格数据的逻辑
-}
-
-// 删除栅格数据
-const deleteRasterData = (data) => {
-  ElMessageBox.confirm(`确定要删除 ${data.name} 吗？`, '提示', {
-    confirmButtonText: '确定',
-    cancelButtonText: '取消',
-    type: 'warning'
-  }).then(async () => {
-    try {
-      const response = await axios.delete(apiConfig.raster.delete(data.id))
-      
-      if (response.data.success) {
-        ElMessage.success('删除成功')
-        refreshData() // 重新加载数据列表
-      } else {
-        ElMessage.error(response.data.error || '删除失败')
-      }
-    } catch (error) {
-      console.error('Error:', error)
-      ElMessage.error(error.message || '删除失败')
-    }
-  }).catch(() => {
-    // 取消删除
-  })
-}
-
-// 格式化日期函数
 const formatDate = (date) => {
-  if (!date) return null
-  
-  const d = new Date(date)
-  const year = d.getFullYear()
-  const month = String(d.getMonth() + 1).padStart(2, '0')
-  const day = String(d.getDate()).padStart(2, '0')
-  
-  return `${year}-${month}-${day}`
-}
+  if (!date) return null;
+  const d = new Date(date);
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+};
 
-// 组件初始化时加载数据
-refreshData()
+const performSearch = async (params, url) => {
+  loading.value = true;
+  try {
+    const response = await axios.get(url, { params });
+    if (response.data.success) {
+      rasterDataList.value = response.data.data || [];
+      if (!rasterDataList.value.length) {
+        ElMessage.info('没有找到符合条件的数据');
+      } else {
+        ElMessage.success('查询成功');
+      }
+    } else {
+      ElMessage.error(response.data.error || '查询失败');
+    }
+  } catch (err) {
+    ElMessage.error(err.message || '查询异常');
+    rasterDataList.value = [];
+  } finally {
+    loading.value = false;
+  }
+};
+
+const searchByCloudCover = async () => {
+  if (cloudCover.value === null) return;
+  await performSearch({ min: cloudCover.value }, apiConfig.raster.search.cloudCover);
+};
+
+const searchByDate = async () => {
+  await performSearch(
+    { 
+      startDate: formatDate(startDate.value), 
+      endDate: formatDate(endDate.value) 
+    }, 
+    apiConfig.raster.search.date
+  );
+};
+
+const searchBySunElevation = async () => {
+  if (sunElevation.value === null) return;
+  await performSearch({ min: sunElevation.value }, apiConfig.raster.search.sunElevation);
+};
+
+const combinedSearch = async () => {
+  const params = {
+    cloudCover: combinedParams.cloudCover,
+    startDate: formatDate(combinedParams.startDate),
+    endDate: formatDate(combinedParams.endDate),
+    sunElevation: combinedParams.sunElevation
+  };
+  await performSearch(params, apiConfig.raster.search.combined);
+};
+
+const refreshData = async () => {
+  await performSearch({}, apiConfig.raster.list);
+};
+
+const viewRasterData = (data) => {
+  emit('view-data', data);
+};
+
+const createNumericInputHandler = (targetRef, modelRef, key, isFloat = true, max) => (value) => {
+  let cleaned = value.replace(isFloat ? /[^\d.]/g : /[^\d]/g, '');
+  if (isFloat) {
+    const parts = cleaned.split('.');
+    if (parts.length > 2) cleaned = `${parts[0]}.${parts.slice(1).join('')}`;
+  }
+  const numValue = isFloat ? parseFloat(cleaned) : parseInt(cleaned, 10);
+  if (!isNaN(numValue) && max !== undefined && numValue > max) cleaned = String(max);
+  targetRef.value = cleaned;
+  const finalValue = cleaned === '' ? null : numValue;
+  if (key) {
+    modelRef[key] = finalValue;
+  } else {
+    modelRef.value = finalValue;
+  }
+};
+
+const handleCloudCoverInput = createNumericInputHandler(cloudCoverInput, cloudCover, null, true, 100);
+const handleSunElevationInput = createNumericInputHandler(sunElevationInput, sunElevation, null, true, 90);
+const handleCombinedCloudCoverInput = createNumericInputHandler(combinedCloudCoverInput, combinedParams, 'cloudCover', true, 100);
+const handleCombinedSunElevationInput = createNumericInputHandler(combinedSunElevationInput, combinedParams, 'sunElevation', true, 90);
+
+// 生命周期
+onMounted(() => {
+  refreshData();
+});
+
+onBeforeUnmount(() => {
+  document.removeEventListener('mousemove', handleMouseMove);
+  document.removeEventListener('mouseup', stopResizing);
+});
 </script>
 
 <style scoped>
-.raster-search-container {
-  padding: 8px;
+.map-controls-sidebar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  height: 100%;
+  z-index: 3003;
+  background: #1a1a1a;
+  display: flex;
+  box-shadow: -2px 0 10px rgba(0, 0, 0, 0.5);
+}
+
+.sidebar-content {
   background-color: #1a1a1a;
-  color: #e6e6e6;
+  color: #fff;
   height: 100%;
   display: flex;
   flex-direction: column;
-  max-height: 100vh;
-  overflow: hidden;
 }
 
-.search-tabs {
-  display: flex;
-  border-bottom: 1px solid #333;
-  margin-bottom: 8px;
-  overflow-x: auto;
-}
-
-.search-tab {
-  padding: 6px 10px;
-  cursor: pointer;
-  position: relative;
-  color: #b8b8b8;
-  white-space: nowrap;
-  font-size: 12px;
-}
-
-.search-tab.active {
-  color: #409EFF;
-}
-
-.search-tab.active::after {
-  content: '';
+.sidebar-resizer {
   position: absolute;
-  bottom: -1px;
+  top: 0;
   left: 0;
-  width: 100%;
-  height: 2px;
-  background-color: #409EFF;
+  bottom: 0;
+  width: 8px;
+  background-color: transparent;
+  cursor: ew-resize;
+  z-index: 91;
 }
 
-.search-panel {
-  margin-bottom: 8px;
-}
-
-.search-form {
-  display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.form-item {
-  display: flex;
-  flex-direction: column;
-  margin-bottom: 4px;
-}
-
-.form-item label {
-  margin-bottom: 2px;
-  font-size: 12px;
-  color: #b8b8b8;
-}
-
-.input-group {
-  display: flex;
-  align-items: center;
-}
-
-.input-group .el-input-number {
+.control-panel {
+  padding: 15px;
+  overflow-y: auto;
   flex: 1;
-  margin: 0 4px;
 }
 
-.search-results {
-  flex: 0 0 auto;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  height: auto;
-  min-height: 200px;
-  max-height: 200px;
-}
-
-.result-header {
+.control-panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  padding: 10px 15px;
+  border-bottom: 1px solid #333;
+  margin: -15px -15px 15px -15px;
+}
+
+.close-button {
+  cursor: pointer;
+}
+
+.control-panel-header h3 {
+  margin: 0;
+  font-size: 16px;
+}
+
+.control-panel-section {
+  padding-bottom: 15px;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.control-panel-title {
+  font-size: 14px;
+  font-weight: 500;
+  margin-bottom: 12px;
+  padding-left: 12px;
+  position: relative;
+}
+
+.control-panel-title::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 3px;
+  height: 14px;
+  background: #409EFF;
+}
+
+.search-tabs {
+  margin-bottom: 10px;
+}
+
+.search-type-buttons {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  row-gap: 6px;
+}
+
+.search-type-buttons .el-button {
+  width: calc(50% - 3px);
+  margin: 0;
+}
+
+.form-item {
+  margin-bottom: 8px;
+}
+
+.form-item label {
+  display: block;
   margin-bottom: 4px;
-}
-
-.result-header .title {
-  font-size: 13px;
-  font-weight: bold;
-}
-
-/* 自定义 Element-Plus 样式，使其适应深色主题 */
-:deep(.el-input__inner),
-:deep(.el-input-number__decrease),
-:deep(.el-input-number__increase),
-:deep(.el-input__wrapper) {
-  background-color: #2c2c2c !important;
-  color: #e6e6e6 !important;
-  border-color: #444 !important;
-}
-
-:deep(.el-date-editor),
-:deep(.el-date-editor .el-input__wrapper) {
-  background-color: #2c2c2c !important;
-  width: 100% !important;
-}
-
-:deep(.el-button) {
-  background-color: #2c2c2c;
-  border-color: #444;
-  padding: 6px 10px;
+  color: #b8b8b8;
   font-size: 12px;
 }
 
-:deep(.el-button--primary) {
-  background-color: #409EFF;
-  border-color: #409EFF;
+.simple-input :deep(.el-input__wrapper) {
+  background-color: #333 !important;
+  box-shadow: none !important;
+  border: none;
 }
 
-:deep(.el-button--danger) {
-  background-color: #F56C6C;
-  border-color: #F56C6C;
-}
-
-:deep(.el-table) {
-  background-color: transparent !important;
+.simple-input :deep(.el-input__inner) {
   color: #e6e6e6 !important;
-  font-size: 12px !important;
+  text-align: center;
 }
 
-:deep(.el-table tr),
-:deep(.el-table th) {
-  background-color: #2c2c2c !important;
-  color: #e6e6e6 !important;
-  padding: 4px 0 !important;
-  height: 32px !important;
+.search-btn-full {
+  width: 100%;
+  margin-top: 8px;
 }
 
-:deep(.el-table td) {
-  background-color: #1a1a1a !important;
-  color: #e6e6e6 !important;
-  border-color: #444 !important;
-  padding: 4px 0 !important;
-  height: 32px !important;
+.search-results-title {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin: 15px 0 8px;
+  padding-bottom: 6px;
+  border-bottom: 1px solid #333;
 }
 
-:deep(.el-table--border),
-:deep(.el-table--border th),
-:deep(.el-table--border td) {
-  border-color: #444 !important;
+.search-results-title .title {
+  font-weight: 500;
 }
 
-:deep(.el-table--striped .el-table__body tr.el-table__row--striped td) {
-  background-color: #252525 !important;
-}
-
-:deep(.el-table__body tr:hover>td) {
-  background-color: #303030 !important;
-}
-
-:deep(.el-loading-mask) {
-  background-color: rgba(0, 0, 0, 0.7) !important;
-}
-
-:deep(.el-table .cell) {
-  padding-left: 5px !important;
-  padding-right: 5px !important;
-}
-
-:deep(.el-button--small) {
-  padding: 4px 8px;
-  min-height: 24px;
+.search-results {
+  flex: 1;
+  overflow-y: auto;
+  min-height: 150px;
 }
 </style> 
